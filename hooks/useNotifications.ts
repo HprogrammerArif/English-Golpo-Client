@@ -14,28 +14,37 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { useEffect, useRef, useState } from "react";
-import * as Notifications from "expo-notifications";
 import { Platform } from "react-native";
 import Constants from "expo-constants";
 
-// Configure how notifications are presented when the app is in the foreground
-Notifications.setNotificationHandler({
-  handleNotification: async () => ({
-    shouldShowAlert: true,
-    shouldPlaySound: true,
-    shouldSetBadge: true,
-    shouldShowBanner: true,
-    shouldShowList: true,
-  }),
-});
+let Notifications: any = null;
+const isExpoGo = Constants.appOwnership === "expo";
+
+if (!isExpoGo) {
+  try {
+    Notifications = require("expo-notifications");
+    // Configure how notifications are presented when the app is in the foreground
+    Notifications.setNotificationHandler({
+      handleNotification: async () => ({
+        shouldShowAlert: true,
+        shouldPlaySound: true,
+        shouldSetBadge: true,
+        shouldShowBanner: true,
+        shouldShowList: true,
+      }),
+    });
+  } catch (e) {
+    console.warn("[Notifications] Failed to load expo-notifications dynamically:", e);
+  }
+}
 
 interface UseNotificationsOptions {
   /** Called once when the push token is ready. Use to send token to your backend. */
   onTokenReady?: (token: string) => void;
   /** Called when a notification is received in the foreground. */
-  onNotificationReceived?: (notification: Notifications.Notification) => void;
+  onNotificationReceived?: (notification: any) => void;
   /** Called when the user taps a notification. */
-  onNotificationResponse?: (response: Notifications.NotificationResponse) => void;
+  onNotificationResponse?: (response: any) => void;
 }
 
 interface UseNotificationsReturn {
@@ -59,10 +68,17 @@ export function useNotifications({
   const [expoPushToken, setExpoPushToken] = useState<string | null>(null);
   const [permissionGranted, setPermissionGranted] = useState(false);
 
-  const notificationListener = useRef<Notifications.EventSubscription | null>(null);
-  const responseListener = useRef<Notifications.EventSubscription | null>(null);
+  const notificationListener = useRef<any>(null);
+  const responseListener = useRef<any>(null);
 
   useEffect(() => {
+    if (!Notifications) {
+      if (__DEV__) {
+        console.log("[Notifications] Remote push notifications are disabled in Expo Go sandbox.");
+      }
+      return;
+    }
+
     // Register for push notifications
     registerForPushNotificationsAsync().then((token) => {
       if (token) {
@@ -73,13 +89,13 @@ export function useNotifications({
     });
 
     // Foreground notification listener
-    notificationListener.current = Notifications.addNotificationReceivedListener((notification) => {
+    notificationListener.current = Notifications.addNotificationReceivedListener((notification: any) => {
       if (__DEV__) console.log("[Notifications] Received:", notification);
       onNotificationReceived?.(notification);
     });
 
     // Notification tap listener
-    responseListener.current = Notifications.addNotificationResponseReceivedListener((response) => {
+    responseListener.current = Notifications.addNotificationResponseReceivedListener((response: any) => {
       if (__DEV__) console.log("[Notifications] Tapped:", response);
       onNotificationResponse?.(response);
     });
@@ -98,6 +114,8 @@ export function useNotifications({
 // ─────────────────────────────────────────────────────────────────────────────
 
 async function registerForPushNotificationsAsync(): Promise<string | null> {
+  if (!Notifications) return null;
+
   // Android requires a notification channel
   if (Platform.OS === "android") {
     await Notifications.setNotificationChannelAsync("default", {
@@ -149,6 +167,12 @@ export async function scheduleLocalNotification(
   data?: Record<string, unknown>,
   delaySeconds = 1,
 ): Promise<void> {
+  if (!Notifications) {
+    if (__DEV__) {
+      console.log("[Notifications] Cannot schedule local notification: expo-notifications not loaded.");
+    }
+    return;
+  }
   await Notifications.scheduleNotificationAsync({
     content: { title, body, data: data ?? {} },
     trigger: { type: Notifications.SchedulableTriggerInputTypes.TIME_INTERVAL, seconds: delaySeconds },

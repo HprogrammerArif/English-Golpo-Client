@@ -1,5 +1,6 @@
 import Purchases, { LOG_LEVEL } from "react-native-purchases";
 import { Platform } from "react-native";
+import Constants, { ExecutionEnvironment } from "expo-constants";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // RevenueCat API Keys
@@ -18,6 +19,16 @@ const IOS_KEY = process.env.EXPO_PUBLIC_REVENUECAT_IOS_KEY ?? "";
  *                 If null, RevenueCat uses an anonymous ID.
  */
 export async function configureRevenueCat(userId?: string | null): Promise<void> {
+  // RevenueCat requires a native store — skip entirely when running in Expo Go
+  const isExpoGo =
+    Constants.executionEnvironment === ExecutionEnvironment.StoreClient;
+  if (isExpoGo) {
+    console.log(
+      "[RevenueCat] Skipping configuration — Expo Go does not support native in-app purchases."
+    );
+    return;
+  }
+
   if (!ANDROID_KEY && !IOS_KEY) {
     console.warn(
       "[RevenueCat] No API key found. Make sure EXPO_PUBLIC_REVENUECAT_ANDROID_KEY is set in .env.local"

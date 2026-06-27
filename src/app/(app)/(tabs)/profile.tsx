@@ -1,28 +1,21 @@
 import { ComponentProps } from "react";
-import { View, Text, ScrollView, TouchableOpacity, Alert, StyleSheet } from "react-native";
+import { View, Text, ScrollView, TouchableOpacity, Alert, StyleSheet, ActivityIndicator } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
 import { useAppDispatch, useAppSelector } from "@/redux/hooks";
 import { logout, selectCurrentUser } from "@/redux/features/auth/authSlice";
+import { useGetStreakQuery } from "@/redux/api/gamificationApi";
 
-// ─── Helpers ────────────────────────────────────────────────────────────────
-function getInitials(user: { first_name?: string; last_name?: string; username?: string; email?: string } | null): string {
-  if (!user) return "?";
-  if (user.first_name && user.last_name) {
-    return (user.first_name[0] + user.last_name[0]).toUpperCase();
-  }
-  if (user.first_name) return user.first_name[0].toUpperCase();
-  if (user.username) return user.username[0].toUpperCase();
-  if (user.email) return user.email[0].toUpperCase();
-  return "?";
-}
-
-function getDisplayName(user: { first_name?: string; last_name?: string; username?: string; email?: string } | null): string {
-  if (!user) return "User";
-  const full = [user.first_name, user.last_name].filter(Boolean).join(" ");
-  return full || user.username || user.email?.split("@")[0] || "User";
-}
+// ─── Path names mapper ──────────────────────────────────────────────────────
+const PATH_FRIENDLY_NAMES: Record<string, string> = {
+  KIDS: "Kids English (বাচ্চাদের ইংরেজি)",
+  SPOKEN: "Spoken English (স্পোকেন)",
+  JOB: "Job English (চাকরি প্রার্থী)",
+  IELTS: "IELTS Preparation (আইইএলটিএস)",
+  ADMISSION: "University Admission",
+  VOCAB: "Vocabulary Mastery",
+};
 
 // ─── List item ──────────────────────────────────────────────────────────────
 interface ListItemProps {
@@ -37,12 +30,21 @@ interface ListItemProps {
 
 function ListItem({ icon, label, onPress, iconBg = "#F3F4F6", iconColor = "#374151", rightComponent, danger }: ListItemProps) {
   return (
-    <TouchableOpacity style={styles.listItem} onPress={onPress} activeOpacity={0.7}>
-      <View style={[styles.listIcon, { backgroundColor: iconBg }]}>
-        <Ionicons name={icon} size={20} color={danger ? "#EF4444" : iconColor} />
+    <TouchableOpacity
+      className="flex-row items-center px-4 py-3.5 gap-3.5 active:bg-gray-50"
+      onPress={onPress}
+      activeOpacity={0.7}
+    >
+      <View
+        className="w-9 h-9 rounded-xl items-center justify-center"
+        style={{ backgroundColor: iconBg }}
+      >
+        <Ionicons name={icon} size={18} color={danger ? "#EF4444" : iconColor} />
       </View>
-      <Text style={[styles.listLabel, danger && styles.listLabelDanger]}>{label}</Text>
-      {rightComponent ?? <Ionicons name="chevron-forward" size={18} color="#D1D5DB" />}
+      <Text className={`flex-1 text-[15px] font-semibold ${danger ? "text-red-500 font-bold" : "text-gray-800"}`}>
+        {label}
+      </Text>
+      {rightComponent ?? <Ionicons name="chevron-forward" size={16} color="#D1D5DB" />}
     </TouchableOpacity>
   );
 }
@@ -51,8 +53,7 @@ function ListItem({ icon, label, onPress, iconBg = "#F3F4F6", iconColor = "#3741
 export default function ProfileScreen() {
   const dispatch = useAppDispatch();
   const user = useAppSelector(selectCurrentUser);
-  const initials = getInitials(user);
-  const displayName = getDisplayName(user);
+  const { data: streakData, isLoading: isStreakLoading } = useGetStreakQuery();
 
   const handleLogout = () => {
     Alert.alert("Sign Out", "Are you sure you want to sign out?", [
@@ -68,66 +69,162 @@ export default function ProfileScreen() {
     ]);
   };
 
+  const name = user?.name || "Learner";
+  const initials = name
+    .split(" ")
+    .map((n) => n[0])
+    .join("")
+    .substring(0, 2)
+    .toUpperCase() || "L";
+
+  const isPremium = user?.role === "PREMIUM";
+  const userPath = user?.learningPath ? PATH_FRIENDLY_NAMES[user.learningPath] : "Not Selected";
+
   return (
     <SafeAreaView style={styles.safe}>
       <ScrollView contentContainerStyle={styles.container} showsVerticalScrollIndicator={false}>
-
-        {/* Avatar + name */}
-        <View style={styles.avatarSection}>
-          <View style={styles.avatar}>
-            <Text style={styles.avatarText}>{initials}</Text>
+        
+        {/* Header Profile Info */}
+        <View className="items-center mb-6 mt-4">
+          <View className="w-24 h-24 rounded-full bg-emerald-500 items-center justify-center shadow-md relative">
+            <Text className="color-white text-3xl font-black">{initials}</Text>
+            {isPremium && (
+              <View className="absolute -bottom-1 -right-1 bg-yellow-400 border-2 border-white rounded-full p-1 shadow-sm">
+                <Ionicons name="ribbon" size={16} color="white" />
+              </View>
+            )}
           </View>
-          <Text style={styles.displayName}>{displayName}</Text>
-          {user?.email && <Text style={styles.email}>{user.email}</Text>}
-          <TouchableOpacity style={styles.editBtn}>
-            <Text style={styles.editBtnText}>Edit Profile</Text>
-          </TouchableOpacity>
-        </View>
+          
+          <Text className="text-xl font-black text-gray-800 mt-4">{name}</Text>
+          <Text className="text-sm font-semibold text-gray-400 mt-1">
+            {user?.phone || user?.email || "No phone linked"}
+          </Text>
 
-        {/* Account section */}
-        <View style={styles.section}>
-          <Text style={styles.sectionLabel}>Account</Text>
-          <View style={styles.card}>
-            <ListItem icon="person-outline" label="Personal Information" onPress={() => {}} iconBg="#EFF6FF" iconColor="#2B7FFF" />
-            <View style={styles.divider} />
-            <ListItem icon="lock-closed-outline" label="Change Password" onPress={() => {}} />
-            <View style={styles.divider} />
-            <ListItem icon="mail-outline" label="Email Preferences" onPress={() => {}} />
-          </View>
-        </View>
-
-        {/* App section */}
-        <View style={styles.section}>
-          <Text style={styles.sectionLabel}>App</Text>
-          <View style={styles.card}>
-            <ListItem icon="notifications-outline" label="Notifications" onPress={() => {}} iconBg="#FFF7ED" iconColor="#F97316" />
-            <View style={styles.divider} />
-            <ListItem icon="star-outline" label="Subscription" onPress={() => {}} iconBg="#FEFCE8" iconColor="#EAB308" />
-            <View style={styles.divider} />
-            <ListItem icon="shield-checkmark-outline" label="Privacy & Security" onPress={() => {}} />
+          {/* Membership Badge */}
+          <View className="flex-row mt-3">
+            <View className={`px-3 py-1 rounded-full flex-row items-center gap-1.5 ${isPremium ? "bg-amber-100 border border-amber-200" : "bg-gray-100 border border-gray-200"}`}>
+              <Text className="text-sm">👑</Text>
+              <Text className={`text-xs font-bold uppercase tracking-wider ${isPremium ? "text-amber-800" : "text-gray-600"}`}>
+                {isPremium ? "Premium Access" : "Free Account"}
+              </Text>
+            </View>
           </View>
         </View>
 
-        {/* Support section */}
-        <View style={styles.section}>
-          <Text style={styles.sectionLabel}>Support</Text>
-          <View style={styles.card}>
-            <ListItem icon="help-circle-outline" label="Help Center" onPress={() => {}} />
-            <View style={styles.divider} />
-            <ListItem icon="document-text-outline" label="Terms & Privacy" onPress={() => {}} />
-            <View style={styles.divider} />
-            <ListItem icon="information-circle-outline" label="About" onPress={() => {}} />
+        {/* Stats Grid */}
+        <View className="flex-row flex-wrap justify-between gap-3 mb-6">
+          {/* XP Card */}
+          <View className="bg-white border border-gray-100 rounded-3xl p-4 w-[48%] shadow-sm items-center">
+            <View className="w-10 h-10 rounded-2xl bg-amber-50 items-center justify-center mb-2">
+              <Ionicons name="flash" size={20} color="#F59E0B" />
+            </View>
+            <Text className="text-xs font-bold text-gray-400 uppercase tracking-wider">Total XP</Text>
+            <Text className="text-lg font-black text-gray-800 mt-0.5">{user?.xpTotal || 0}</Text>
+          </View>
+
+          {/* Gems Card */}
+          <View className="bg-white border border-gray-100 rounded-3xl p-4 w-[48%] shadow-sm items-center">
+            <View className="w-10 h-10 rounded-2xl bg-cyan-50 items-center justify-center mb-2">
+              <Text className="text-lg">💎</Text>
+            </View>
+            <Text className="text-xs font-bold text-gray-400 uppercase tracking-wider">Gems</Text>
+            <Text className="text-lg font-black text-gray-800 mt-0.5">{user?.gems || 0}</Text>
+          </View>
+
+          {/* Streak Card */}
+          <View className="bg-white border border-gray-100 rounded-3xl p-4 w-[48%] shadow-sm items-center">
+            <View className="w-10 h-10 rounded-2xl bg-red-50 items-center justify-center mb-2">
+              <Ionicons name="flame" size={20} color="#EF4444" />
+            </View>
+            <Text className="text-xs font-bold text-gray-400 uppercase tracking-wider">Streak</Text>
+            <Text className="text-lg font-black text-gray-800 mt-0.5">
+              {isStreakLoading ? "..." : (streakData?.currentStreak || 0)} Days
+            </Text>
+          </View>
+
+          {/* League Card */}
+          <View className="bg-white border border-gray-100 rounded-3xl p-4 w-[48%] shadow-sm items-center">
+            <View className="w-10 h-10 rounded-2xl bg-purple-50 items-center justify-center mb-2">
+              <Ionicons name="trophy" size={20} color="#8B5CF6" />
+            </View>
+            <Text className="text-xs font-bold text-gray-400 uppercase tracking-wider">League</Text>
+            <Text className="text-lg font-black text-gray-800 mt-0.5 uppercase">
+              {user?.league || "Bronze"}
+            </Text>
           </View>
         </View>
 
-        {/* Logout */}
-        <View style={styles.section}>
-          <View style={styles.card}>
-            <ListItem icon="log-out-outline" label="Sign Out" onPress={handleLogout} danger />
+        {/* Path Info */}
+        <View className="bg-white border border-gray-100 p-5 rounded-3xl mb-6 shadow-sm">
+          <View className="flex-row items-center gap-3 mb-2">
+            <View className="w-9 h-9 rounded-xl bg-emerald-50 items-center justify-center">
+              <Ionicons name="school" size={18} color="#10B981" />
+            </View>
+            <View className="flex-1">
+              <Text className="text-xs text-gray-400 font-bold uppercase tracking-wider">Active Path</Text>
+              <Text className="text-[15px] font-bold text-gray-800 mt-0.5">{userPath}</Text>
+            </View>
+          </View>
+          {user?.nctbClass && (
+            <Text className="text-xs font-semibold text-gray-400 ml-12">
+              Class: Class {user.nctbClass} (NCTB Primary Curriculum)
+            </Text>
+          )}
+        </View>
+
+        {/* Menu Actions */}
+        <View className="mb-6">
+          <Text className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2.5 ml-4">
+            Study Settings & Tools
+          </Text>
+          <View className="bg-white border border-gray-100 rounded-3xl overflow-hidden shadow-sm">
+            <ListItem
+              icon="cart-outline"
+              label="Gems Shop"
+              onPress={() => router.push("/(app)/shop" as any)}
+              iconBg="#EFF6FF"
+              iconColor="#3B82F6"
+            />
+            <View style={styles.divider} />
+            <ListItem
+              icon="ribbon-outline"
+              label="Go Premium Options"
+              onPress={() => router.push("/(app)/subscription/paywall" as any)}
+              iconBg="#FEFCE8"
+              iconColor="#EAB308"
+            />
+            <View style={styles.divider} />
+            <ListItem
+              icon="people-outline"
+              label="Parent Control Dashboard"
+              onPress={() => router.push("/(app)/parents/dashboard" as any)}
+              iconBg="#FFF7ED"
+              iconColor="#F97316"
+            />
+            <View style={styles.divider} />
+            <ListItem
+              icon="gift-outline"
+              label="Invite & Earn / Referrals"
+              onPress={() => router.push("/(app)/growth/refer" as any)}
+              iconBg="#FDF2F8"
+              iconColor="#EC4899"
+            />
           </View>
         </View>
 
-        <Text style={styles.version}>Version 1.0.0</Text>
+        {/* Sign Out */}
+        <View className="mb-8">
+          <View className="bg-white border border-gray-100 rounded-3xl overflow-hidden shadow-sm">
+            <ListItem
+              icon="log-out-outline"
+              label="Sign Out"
+              onPress={handleLogout}
+              danger
+            />
+          </View>
+        </View>
+
+        <Text className="text-center text-gray-300 text-xs mb-8">Version 1.0.0 (Expo + NestJS)</Text>
       </ScrollView>
     </SafeAreaView>
   );
@@ -135,21 +232,7 @@ export default function ProfileScreen() {
 
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: "#F9FAFB" },
-  container: { paddingHorizontal: 20, paddingTop: 20, paddingBottom: 40 },
-  avatarSection: { alignItems: "center", marginBottom: 28 },
-  avatar: { width: 88, height: 88, borderRadius: 44, backgroundColor: "#2B7FFF", alignItems: "center", justifyContent: "center", marginBottom: 12 },
-  avatarText: { color: "#fff", fontSize: 32, fontWeight: "800" },
-  displayName: { fontSize: 22, fontWeight: "800", color: "#111827", marginBottom: 2 },
-  email: { fontSize: 14, color: "#6B7280", marginBottom: 12 },
-  editBtn: { paddingHorizontal: 24, paddingVertical: 8, borderRadius: 20, borderWidth: 1.5, borderColor: "#E5E7EB" },
-  editBtnText: { fontSize: 14, fontWeight: "600", color: "#374151" },
-  section: { marginBottom: 14 },
-  sectionLabel: { fontSize: 12, fontWeight: "700", color: "#9CA3AF", textTransform: "uppercase", letterSpacing: 1, marginBottom: 8, marginLeft: 4 },
-  card: { backgroundColor: "#fff", borderRadius: 16, overflow: "hidden", shadowColor: "#000", shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.04, shadowRadius: 6, elevation: 2 },
-  listItem: { flexDirection: "row", alignItems: "center", paddingHorizontal: 16, paddingVertical: 14, gap: 12 },
-  listIcon: { width: 36, height: 36, borderRadius: 10, alignItems: "center", justifyContent: "center" },
-  listLabel: { flex: 1, fontSize: 15, fontWeight: "500", color: "#111827" },
-  listLabelDanger: { color: "#EF4444" },
-  divider: { height: 1, backgroundColor: "#F3F4F6", marginLeft: 64 },
-  version: { textAlign: "center", color: "#D1D5DB", fontSize: 12, marginTop: 8 },
+  container: { paddingHorizontal: 20, paddingTop: 10, paddingBottom: 40 },
+  divider: { height: 1, backgroundColor: "#F3F4F6", marginLeft: 56 },
 });
+

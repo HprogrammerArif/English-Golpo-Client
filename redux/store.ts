@@ -4,7 +4,8 @@ import { setupListeners } from "@reduxjs/toolkit/query";
 import NetInfo from "@react-native-community/netinfo";
 import { AppState } from "react-native";
 import authReducer from "./features/auth/authSlice";
-import childReducer from "./features/child/childSlice";
+import gameReducer from "./features/gamification/gameSlice";
+import progressReducer from "./features/progress/progressSlice";
 import tabIndicatorReducer from "./features/notificationService/tabIndicatorSlice";
 import {
   persistReducer,
@@ -22,7 +23,8 @@ import { baseApi } from "./api/baseApi";
 // Combine all reducers
 const rootReducer = combineReducers({
   auth: authReducer,
-  child: childReducer,
+  game: gameReducer,
+  progress: progressReducer,
   tabIndicator: tabIndicatorReducer,
   [baseApi.reducerPath]: baseApi.reducer,
 });
@@ -32,7 +34,7 @@ const persistConfig = {
   key: "root",
   version: 1,
   storage: secureStorage, // Use SecureStore
-  whitelist: ["auth", "child"], // Persist only auth and child states, not the API cache
+  whitelist: ["auth", "game", "progress"], // Persist auth, game and progress states
   keyPrefix: "persist_", // Use underscore instead of colon for SecureStore compatibility
 };
 

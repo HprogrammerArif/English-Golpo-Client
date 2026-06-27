@@ -1,82 +1,148 @@
+import React from "react";
 import { View, Text, ScrollView, TouchableOpacity, StyleSheet } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { useAppSelector } from "@/redux/hooks";
 import { selectCurrentUser } from "@/redux/features/auth/authSlice";
-
-const QUICK_ACTIONS = [
-  { icon: "add-circle-outline", label: "New", color: "#2B7FFF", bg: "#EFF6FF" },
-  { icon: "search-outline", label: "Search", color: "#10B981", bg: "#ECFDF5" },
-  { icon: "heart-outline", label: "Saved", color: "#F59E0B", bg: "#FFFBEB" },
-  { icon: "settings-outline", label: "Settings", color: "#8B5CF6", bg: "#F5F3FF" },
-] as const;
+import { selectDailyGoal } from "@/redux/features/gamification/gameSlice";
+import { useRouter } from "expo-router";
 
 export default function HomeScreen() {
+  const router = useRouter();
   const user = useAppSelector(selectCurrentUser);
-  const firstName = user?.first_name || user?.username || "there";
+  const dailyGoal = useAppSelector(selectDailyGoal);
+
+  const name = user?.name || "Learner";
+  const streak = 3; // Mocked streak (or fetch from user.streak if populated)
+  const xpTotal = user?.xpTotal || 0;
+  const gems = user?.gems || 0;
+  const lives = user?.lives || 5;
+  const isPremium = user?.role === "PREMIUM";
+
+  const pathFriendlyNames = {
+    KIDS: "Kids English (বাচ্চাদের ইংরেজি)",
+    SPOKEN: "Spoken English (স্পোকেন)",
+    JOB: "Job English (চাকরি প্রার্থী)",
+    IELTS: "IELTS Preparation (আইইএলটিএস)",
+    ADMISSION: "University Admission",
+    VOCAB: "Vocabulary Mastery",
+  };
+
+  const currentPathName = user?.learningPath ? pathFriendlyNames[user.learningPath] : "Select Path";
 
   return (
     <SafeAreaView style={styles.safe}>
-      <ScrollView contentContainerStyle={styles.container} showsVerticalScrollIndicator={false}>
+      {/* Header Bar */}
+      <View className="bg-white border-b border-gray-100 px-6 py-4 flex-row justify-between items-center shadow-sm">
+        <View className="flex-row items-center space-x-1">
+          <Ionicons name="flash" size={20} color="#F59E0B" />
+          <Text className="text-base font-extrabold text-gray-700">{streak} Days</Text>
+        </View>
 
-        {/* Top bar */}
-        <View style={styles.topBar}>
-          <View>
-            <Text style={styles.greeting}>Good morning 👋</Text>
-            <Text style={styles.name}>{firstName}</Text>
+        <View className="flex-row items-center space-x-4">
+          {/* Gems */}
+          <View className="flex-row items-center space-x-1.5">
+            <Text className="text-xl">💎</Text>
+            <Text className="text-sm font-extrabold text-gray-700">{gems}</Text>
           </View>
-          <TouchableOpacity style={styles.avatarBtn}>
-            <Text style={styles.avatarText}>
-              {(user?.first_name?.[0] ?? user?.username?.[0] ?? "U").toUpperCase()}
+          
+          {/* Lives */}
+          <View className="flex-row items-center space-x-1">
+            <Ionicons name="heart" size={20} color="#EF4444" />
+            <Text className="text-sm font-extrabold text-gray-700">
+              {isPremium ? "∞" : lives}
             </Text>
-          </TouchableOpacity>
-        </View>
-
-        {/* Hero card */}
-        <View style={styles.heroCard}>
-          <Text style={styles.heroLabel}>Getting Started</Text>
-          <Text style={styles.heroTitle}>Build something amazing</Text>
-          <Text style={styles.heroSub}>
-            This starter is ready for your next project. Wire up the API and you&apos;re live.
-          </Text>
-          <TouchableOpacity style={styles.heroCta}>
-            <Text style={styles.heroCtaText}>Get Started</Text>
-            <Ionicons name="arrow-forward" size={16} color="#2B7FFF" />
-          </TouchableOpacity>
-        </View>
-
-        {/* Quick actions */}
-        <Text style={styles.sectionTitle}>Quick Actions</Text>
-        <View style={styles.actionsGrid}>
-          {QUICK_ACTIONS.map((action) => (
-            <TouchableOpacity
-              key={action.label}
-              style={[styles.actionCard, { backgroundColor: action.bg }]}
-              activeOpacity={0.75}
-            >
-              <Ionicons name={action.icon} size={28} color={action.color} />
-              <Text style={[styles.actionLabel, { color: action.color }]}>{action.label}</Text>
-            </TouchableOpacity>
-          ))}
-        </View>
-
-        {/* Recent — scaffold */}
-        <View style={styles.recentHeader}>
-          <Text style={styles.sectionTitle}>Recent Activity</Text>
-          <TouchableOpacity><Text style={styles.seeAll}>See all</Text></TouchableOpacity>
-        </View>
-        {[1, 2, 3].map((i) => (
-          <View key={i} style={styles.activityRow}>
-            <View style={styles.activityIcon}>
-              <Ionicons name="time-outline" size={20} color="#6B7280" />
-            </View>
-            <View style={styles.activityText}>
-              <Text style={styles.activityTitle}>Activity item {i}</Text>
-              <Text style={styles.activitySub}>Replace with real data</Text>
-            </View>
-            <Ionicons name="chevron-forward" size={18} color="#D1D5DB" />
           </View>
-        ))}
+        </View>
+      </View>
+
+      <ScrollView contentContainerStyle={styles.container} showsVerticalScrollIndicator={false} className="px-5 py-4">
+        {/* Welcome Section */}
+        <View className="mb-6">
+          <Text className="text-xs text-gray-400 font-bold uppercase tracking-wider">Welcome back</Text>
+          <Text className="text-2xl font-black text-gray-800 mt-0.5">Hello, {name}! 👋</Text>
+        </View>
+
+        {/* Hero Learning Path Card */}
+        <View className="bg-emerald-500 rounded-3xl p-6 mb-6 shadow-md shadow-emerald-500/10">
+          <Text className="text-[10px] font-bold text-emerald-100 uppercase tracking-widest bg-emerald-600/40 self-start px-2 py-0.5 rounded-full">
+            Active Learning Path
+          </Text>
+          <Text className="text-xl font-extrabold text-white mt-2 leading-tight">
+            {currentPathName}
+          </Text>
+          <Text className="text-xs text-emerald-100 mt-2 font-medium">
+            Accumulated: {xpTotal} Total XP Points
+          </Text>
+
+          <View className="border-t border-emerald-400/40 my-4" />
+
+          <TouchableOpacity
+            onPress={() => router.push("/(app)/(tabs)/explore")}
+            className="bg-white h-12 rounded-2xl items-center justify-center flex-row space-x-1.5 active:bg-gray-50"
+          >
+            <Text className="text-emerald-700 font-extrabold text-sm">Continue Learning</Text>
+            <Ionicons name="play" size={14} color="#047857" />
+          </TouchableOpacity>
+        </View>
+
+        {/* Actions Grid */}
+        <Text className="text-base font-extrabold text-gray-800 mb-3.5">Quick Actions</Text>
+        <View className="flex-row flex-wrap justify-between gap-3 mb-6">
+          {/* Shop */}
+          <TouchableOpacity
+            onPress={() => router.push("/(app)/shop" as any)}
+            className="bg-white border border-gray-100 rounded-2xl p-4 w-[48%] items-center justify-center flex-row space-x-2 shadow-sm"
+          >
+            <Text className="text-xl">🛒</Text>
+            <Text className="text-sm font-bold text-gray-700">Gems Shop</Text>
+          </TouchableOpacity>
+
+          {/* Share & Invite */}
+          <TouchableOpacity
+            onPress={() => router.push("/(app)/growth/refer" as any)}
+            className="bg-white border border-gray-100 rounded-2xl p-4 w-[48%] items-center justify-center flex-row space-x-2 shadow-sm"
+          >
+            <Text className="text-xl">🎁</Text>
+            <Text className="text-sm font-bold text-gray-700">Invite & Earn</Text>
+          </TouchableOpacity>
+
+          {/* Parental Control */}
+          <TouchableOpacity
+            onPress={() => router.push("/(app)/parents/dashboard" as any)}
+            className="bg-white border border-gray-100 rounded-2xl p-4 w-[48%] items-center justify-center flex-row space-x-2 shadow-sm"
+          >
+            <Text className="text-xl">👨‍👩‍👦</Text>
+            <Text className="text-sm font-bold text-gray-700">Parent Mode</Text>
+          </TouchableOpacity>
+
+          {/* Go Premium */}
+          <TouchableOpacity
+            onPress={() => router.push("/(app)/subscription/paywall" as any)}
+            className="bg-emerald-50 border border-emerald-100 rounded-2xl p-4 w-[48%] items-center justify-center flex-row space-x-2 shadow-sm"
+          >
+            <Text className="text-xl">👑</Text>
+            <Text className="text-sm font-bold text-emerald-800">Go Premium</Text>
+          </TouchableOpacity>
+        </View>
+
+        {/* Daily Goal card */}
+        <View className="bg-white border border-gray-100 p-5 rounded-3xl mb-6 shadow-sm">
+          <View className="flex-row justify-between items-center mb-3">
+            <View>
+              <Text className="text-xs text-gray-400 font-bold uppercase tracking-wide">Daily Target</Text>
+              <Text className="text-base font-bold text-gray-800 mt-0.5">Keep up your daily habits</Text>
+            </View>
+            <Ionicons name="ribbon-outline" size={24} color="#10B981" />
+          </View>
+          <View className="w-full h-3 bg-gray-100 rounded-full overflow-hidden">
+            {/* Compute XP relative progress */}
+            <View style={{ width: `${Math.min(100, (xpTotal / dailyGoal) * 100)}%` }} className="h-full bg-emerald-500" />
+          </View>
+          <Text className="text-xs text-gray-400 font-bold mt-2 text-right">
+            {xpTotal} / {dailyGoal} XP
+          </Text>
+        </View>
       </ScrollView>
     </SafeAreaView>
   );
@@ -84,45 +150,6 @@ export default function HomeScreen() {
 
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: "#F9FAFB" },
-  container: { paddingHorizontal: 20, paddingTop: 16, paddingBottom: 32, gap: 4 },
-  topBar: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 20 },
-  greeting: { fontSize: 14, color: "#6B7280" },
-  name: { fontSize: 22, fontWeight: "800", color: "#111827" },
-  avatarBtn: { width: 44, height: 44, borderRadius: 22, backgroundColor: "#2B7FFF", alignItems: "center", justifyContent: "center" },
-  avatarText: { color: "#fff", fontWeight: "700", fontSize: 16 },
-  heroCard: {
-    backgroundColor: "#fff",
-    borderRadius: 18,
-    padding: 20,
-    marginBottom: 24,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.06,
-    shadowRadius: 10,
-    elevation: 3,
-  },
-  heroLabel: { fontSize: 12, fontWeight: "700", color: "#2B7FFF", textTransform: "uppercase", letterSpacing: 1, marginBottom: 6 },
-  heroTitle: { fontSize: 20, fontWeight: "800", color: "#111827", marginBottom: 8 },
-  heroSub: { fontSize: 14, color: "#6B7280", lineHeight: 20, marginBottom: 14 },
-  heroCta: { flexDirection: "row", alignItems: "center", gap: 6 },
-  heroCtaText: { color: "#2B7FFF", fontWeight: "700", fontSize: 14 },
-  sectionTitle: { fontSize: 18, fontWeight: "800", color: "#111827", marginBottom: 12 },
-  actionsGrid: { flexDirection: "row", flexWrap: "wrap", gap: 12, marginBottom: 24 },
-  actionCard: { width: "47%", borderRadius: 14, padding: 18, alignItems: "center", gap: 8 },
-  actionLabel: { fontSize: 13, fontWeight: "700" },
-  recentHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 12 },
-  seeAll: { color: "#2B7FFF", fontWeight: "600", fontSize: 13 },
-  activityRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "#fff",
-    borderRadius: 12,
-    padding: 14,
-    marginBottom: 8,
-    gap: 12,
-  },
-  activityIcon: { width: 40, height: 40, borderRadius: 20, backgroundColor: "#F3F4F6", alignItems: "center", justifyContent: "center" },
-  activityText: { flex: 1 },
-  activityTitle: { fontSize: 14, fontWeight: "600", color: "#111827" },
-  activitySub: { fontSize: 12, color: "#9CA3AF", marginTop: 2 },
+  container: { paddingBottom: 40 },
 });
+

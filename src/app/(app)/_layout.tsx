@@ -9,8 +9,7 @@ import { selectCurrentToken } from "@/redux/features/auth/authSlice";
  * (tabs)/ sub-group handles the tab navigator.
  */
 export default function AppLayout() {
-  // const token = useAppSelector(selectCurrentToken);
-  const token = true;
+  const token = useAppSelector(selectCurrentToken);
 
   useEffect(() => {
     if (!token) {

@@ -29,10 +29,9 @@ const baseQuery = fetchBaseQuery({
       "login",
       "register",
       "refreshToken",
-      "verify-email",
-      "confirm",
-      "legal-privacy/",
-      "submitSupportForm"
+      "loginPhone",
+      "verifyOtp",
+      "registerPhone"
     ].includes(endpoint);
     if (skipAuth) return headers;
 
@@ -175,22 +174,24 @@ export const baseApi = createApi({
   refetchOnReconnect: true, // Re-fetch when network comes back
   refetchOnFocus: true,     // Re-fetch when app returns to foreground (AppState → onFocus)
   tagTypes: [
-    "Child",
-    "Message",
-    "Expense",
-    "Schedule",
+    "User",
+    "Story",
+    "Quiz",
+    "Leaderboard",
+    "Bookmarks",
+    "Subscription",
     "documents",
-    "Profile",
-    "Onboarding",
-    "Children",
-    "PendingInvitations",
     "Milestones",
-    "NotificationPreferences",
-    "NotificationHistory",
-    "HomeScreenSentimentGraph",
-    "LegalAndPrivacyPolicy",
+    "PendingInvitations",
+    "Schedule",
     "SubscriptionPlans",
-    "MySubscription"
+    "MySubscription",
+    "Children",
+    "Profile",
+    "Expense",
+    "HomeScreenSentimentGraph",
+    "NotificationPreferences",
+    "NotificationHistory"
   ] as const,
   endpoints: (builder) => ({}),
 });

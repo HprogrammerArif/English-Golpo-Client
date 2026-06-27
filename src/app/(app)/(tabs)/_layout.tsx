@@ -60,6 +60,20 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
+        name="leaderboard"
+        options={{
+          title: "Leagues",
+          tabBarIcon: ({ focused }) => (
+            <TabBarIcon
+              focused={focused}
+              iconName="trophy-outline"
+              iconNameFocused="trophy"
+              label="Leagues"
+            />
+          ),
+        }}
+      />
+      <Tabs.Screen
         name="profile"
         options={{
           title: "Profile",
