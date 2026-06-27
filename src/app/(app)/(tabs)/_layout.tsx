@@ -3,8 +3,9 @@ import { Platform, StyleSheet, View } from "react-native";
 import { TabBarIcon } from "@/components/TabBarIcon";
 
 /**
- * Tab Navigator — 4 tabs: Home, Explore, Notifications, Profile
- * All screens inside (app)/(tabs)/ are automatically auth-protected by the parent (app)/_layout.tsx
+ * Tab Navigator — 4 tabs: Home, Explore, Leagues, Profile
+ * Notifications moved to Home header icon.
+ * Notifications tab removed per UX redesign.
  */
 export default function TabLayout() {
   return (
@@ -38,25 +39,18 @@ export default function TabLayout() {
           tabBarIcon: ({ focused }) => (
             <TabBarIcon
               focused={focused}
-              iconName="compass-outline"
-              iconNameFocused="compass"
-              label="Explore"
+              iconName="book-outline"
+              iconNameFocused="book"
+              label="Stories"
             />
           ),
         }}
       />
+      {/* Hide notifications tab — moved to Home header */}
       <Tabs.Screen
         name="notifications"
         options={{
-          title: "Notifications",
-          tabBarIcon: ({ focused }) => (
-            <TabBarIcon
-              focused={focused}
-              iconName="notifications-outline"
-              iconNameFocused="notifications"
-              label="Alerts"
-            />
-          ),
+          href: null,
         }}
       />
       <Tabs.Screen
@@ -82,7 +76,7 @@ export default function TabLayout() {
               focused={focused}
               iconName="person-outline"
               iconNameFocused="person"
-              label="Profile"
+              label="Me"
             />
           ),
         }}
@@ -93,17 +87,17 @@ export default function TabLayout() {
 
 const styles = StyleSheet.create({
   tabBar: {
-    height: Platform.OS === "ios" ? 88 : 68,
-    paddingBottom: Platform.OS === "ios" ? 24 : 8,
-    paddingTop: 10,
+    height: Platform.OS === "ios" ? 84 : 64,
+    paddingBottom: Platform.OS === "ios" ? 20 : 6,
+    paddingTop: 8,
     backgroundColor: "#FFFFFF",
     borderTopWidth: 1,
-    borderTopColor: "#F3F4F6",
-    elevation: 8,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: -2 },
-    shadowOpacity: 0.06,
-    shadowRadius: 8,
+    borderTopColor: "#F0FDF4",
+    elevation: 12,
+    shadowColor: "#10B981",
+    shadowOffset: { width: 0, height: -3 },
+    shadowOpacity: 0.08,
+    shadowRadius: 12,
   },
   tabItem: { padding: 0 },
 });

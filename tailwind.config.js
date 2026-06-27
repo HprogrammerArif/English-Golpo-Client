@@ -1,6 +1,5 @@
 /** @type {import('tailwindcss').Config} */
 module.exports = {
-  // NOTE: Update this to include the paths to all files that contain Nativewind classes.
   content: [
     "./src/**/*.{js,jsx,ts,tsx}",
     "./app/**/*.{js,jsx,ts,tsx}",
@@ -11,33 +10,48 @@ module.exports = {
   theme: {
     extend: {
       colors: {
-        primary: "#2B7FFF",
-        secondary: "#7CB0FF",
-        white: {
-          DEFAULT: "#ffffff",
-          100: "#fafafa",
-          200: "#FE8C00",
+        // ── English Golpo Brand ─────────────────────────────
+        primary: {
+          DEFAULT: "#10B981",  // Emerald — main brand identity
+          light:   "#34D399",
+          dark:    "#059669",
         },
+        secondary: {
+          DEFAULT: "#F59E0B",  // Warm Amber — XP, streaks, achievements
+          light:   "#FBBF24",
+          dark:    "#D97706",
+        },
+        accent: {
+          blue:    "#2563EB",  // Links and info
+          purple:  "#7C3AED",  // League badges
+          pink:    "#DB2777",  // Admission path
+          red:     "#EF4444",  // Lives, alerts, Nagad
+          cyan:    "#0891B2",  // Vocab path
+        },
+        // ── Neutrals ────────────────────────────────────────
         gray: {
-          100: "#878787",
-          200: "#878787",
+          50:  "#F9FAFB",
+          100: "#F3F4F6",
+          200: "#E5E7EB",
+          300: "#D1D5DB",
+          400: "#9CA3AF",
+          500: "#6B7280",
+          600: "#4B5563",
+          700: "#374151",
+          800: "#1F2937",
+          900: "#111827",
         },
-        dark: {
-          100: "#181C2E",
-          primary:"#262626",
-          secondary:"#53565D"
-        },
-        error: "#F14141",
-        success: "#2F9B65",
+        // ── Surface tokens ───────────────────────────────────
+        surface: "#FFFFFF",
+        background: "#F0FDF4",  // Very light green tint for bg
+      },
+      borderRadius: {
+        "4xl": "2rem",
       },
       fontFamily: {
-        quicksand: ["Quicksand-Regular", "sans-serif"],
-        "quicksand-bold": ["Quicksand-Bold", "sans-serif"],
-        "quicksand-semibold": ["Quicksand-SemiBold", "sans-serif"],
-        "quicksand-light": ["Quicksand-Light", "sans-serif"],
-        "quicksand-medium": ["Quicksand-Medium", "sans-serif"],
+        sans: ["System"],
       },
     },
   },
   plugins: [],
-}
+};

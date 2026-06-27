@@ -8,11 +8,12 @@ interface TabBarIconProps {
   iconNameFocused: ComponentProps<typeof Ionicons>['name'];
   label: string;
   hasIndicator?: boolean;
+  emoji?: string;
 }
 
 /**
- * TabBarIcon — custom tab icon with label and optional notification dot.
- * Uses filled icon when focused, outline when not.
+ * TabBarIcon — vibrant custom tab icon pill for English Golpo.
+ * Active state gets a green pill background + filled icon.
  */
 export function TabBarIcon({
   focused,
@@ -20,15 +21,20 @@ export function TabBarIcon({
   iconNameFocused,
   label,
   hasIndicator = false,
+  emoji,
 }: TabBarIconProps) {
   return (
     <View style={styles.container}>
-      <View style={styles.iconWrap}>
-        <Ionicons
-          name={focused ? iconNameFocused : iconName}
-          size={24}
-          color={focused ? "#2B7FFF" : "#9CA3AF"}
-        />
+      <View style={[styles.iconWrap, focused && styles.iconWrapFocused]}>
+        {emoji ? (
+          <Text style={styles.emoji}>{emoji}</Text>
+        ) : (
+          <Ionicons
+            name={focused ? iconNameFocused : iconName}
+            size={22}
+            color={focused ? "#fff" : "#9CA3AF"}
+          />
+        )}
         {hasIndicator && !focused && <View style={styles.dot} />}
       </View>
       <Text style={[styles.label, focused && styles.labelFocused]}>{label}</Text>
@@ -37,12 +43,23 @@ export function TabBarIcon({
 }
 
 const styles = StyleSheet.create({
-  container: { alignItems: "center", justifyContent: "center", gap: 3 },
-  iconWrap: { position: "relative" },
+  container: { alignItems: "center", justifyContent: "center", gap: 4 },
+  iconWrap: {
+    width: 46,
+    height: 32,
+    borderRadius: 16,
+    alignItems: "center",
+    justifyContent: "center",
+    position: "relative",
+  },
+  iconWrapFocused: {
+    backgroundColor: "#10B981",
+  },
+  emoji: { fontSize: 20 },
   dot: {
     position: "absolute",
-    top: -2,
-    right: -4,
+    top: 2,
+    right: 4,
     width: 8,
     height: 8,
     borderRadius: 4,
@@ -50,6 +67,6 @@ const styles = StyleSheet.create({
     borderWidth: 1.5,
     borderColor: "#fff",
   },
-  label: { fontSize: 10, fontWeight: "500", color: "#9CA3AF" },
-  labelFocused: { color: "#2B7FFF", fontWeight: "700" },
+  label: { fontSize: 10, fontWeight: "600", color: "#9CA3AF", letterSpacing: 0.3 },
+  labelFocused: { color: "#10B981", fontWeight: "800" },
 });
