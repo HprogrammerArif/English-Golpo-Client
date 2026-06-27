@@ -46,13 +46,7 @@ export default function TabLayout() {
           ),
         }}
       />
-      {/* Hide notifications tab — moved to Home header */}
-      <Tabs.Screen
-        name="notifications"
-        options={{
-          href: null,
-        }}
-      />
+    
       <Tabs.Screen
         name="leaderboard"
         options={{
@@ -87,7 +81,7 @@ export default function TabLayout() {
 
 const styles = StyleSheet.create({
   tabBar: {
-    height: Platform.OS === "ios" ? 84 : 64,
+    height: Platform.OS === "ios" ? 88 : 72,
     paddingBottom: Platform.OS === "ios" ? 20 : 6,
     paddingTop: 8,
     backgroundColor: "#FFFFFF",
