@@ -31,7 +31,7 @@ export function TabBarIcon({
         ) : (
           <Ionicons
             name={focused ? iconNameFocused : iconName}
-            size={22}
+            size={20}
             color={focused ? "#fff" : "#9CA3AF"}
           />
         )}
@@ -43,9 +43,9 @@ export function TabBarIcon({
 }
 
 const styles = StyleSheet.create({
-  container: { alignItems: "center", justifyContent: "center", gap: 4 },
+  container: { alignItems: "center", justifyContent: "center", gap: 1, width: 56 },
   iconWrap: {
-    width: 46,
+    width: 32,
     height: 32,
     borderRadius: 16,
     alignItems: "center",
@@ -67,6 +67,6 @@ const styles = StyleSheet.create({
     borderWidth: 1.5,
     borderColor: "#fff",
   },
-  label: { fontSize: 10, fontWeight: "600", color: "#9CA3AF", letterSpacing: 0.3 },
-  labelFocused: { color: "#10B981", fontWeight: "800" },
+  label: { fontSize: 10, fontWeight: "500", color: "#9CA3AF", letterSpacing: 0, textAlign: "center" },
+  labelFocused: { color: "#10B981", fontWeight: "700" },
 });
