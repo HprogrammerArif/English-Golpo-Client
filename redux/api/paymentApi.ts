@@ -7,6 +7,7 @@ export interface CreateBkashPaymentResponse {
 }
 
 export const paymentApi = baseApi.injectEndpoints({
+  overrideExisting: true,
   endpoints: (builder) => ({
     createBkashPayment: builder.mutation<CreateBkashPaymentResponse, { planId: string; storyId?: string }>({
       query: (body) => ({

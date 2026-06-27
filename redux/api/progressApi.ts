@@ -27,6 +27,7 @@ export interface Flashcard {
 }
 
 export const progressApi = baseApi.injectEndpoints({
+  overrideExisting: true,
   endpoints: (builder) => ({
     syncProgress: builder.mutation<{ synced: number }, ProgressSyncItem[]>({
       query: (items) => ({

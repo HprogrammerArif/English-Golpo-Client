@@ -209,6 +209,22 @@ export default function ProfileScreen() {
               iconBg="#FDF2F8"
               iconColor="#EC4899"
             />
+            <View style={styles.divider} />
+            <ListItem
+              icon="download-outline"
+              label="Offline Downloads"
+              onPress={() => router.push("/(app)/stories/download-manager" as any)}
+              iconBg="#F0FDF4"
+              iconColor="#10B981"
+            />
+            <View style={styles.divider} />
+            <ListItem
+              icon="star-outline"
+              label="Rate English Golpo"
+              onPress={() => router.push("/(app)/growth/review-prompt" as any)}
+              iconBg="#FEF3C7"
+              iconColor="#F59E0B"
+            />
           </View>
         </View>
 

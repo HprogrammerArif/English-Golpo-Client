@@ -33,6 +33,7 @@ export interface B2BDashboardResponse {
 }
 
 export const accountsApi = baseApi.injectEndpoints({
+  overrideExisting: true,
   endpoints: (builder) => ({
     getParentDashboard: builder.query<ParentDashboardResponse, void>({
       query: () => "/accounts/parents/dashboard",

@@ -45,6 +45,7 @@ export interface Story {
 }
 
 export const storyApi = baseApi.injectEndpoints({
+  overrideExisting: true,
   endpoints: (builder) => ({
     getLearningPaths: builder.query<string[], void>({
       query: () => "/stories/paths",

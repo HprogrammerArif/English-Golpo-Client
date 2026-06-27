@@ -23,6 +23,7 @@ export interface SubmitQuizResponse {
 }
 
 export const quizApi = baseApi.injectEndpoints({
+  overrideExisting: true,
   endpoints: (builder) => ({
     getQuizByStoryId: builder.query<Quiz, string>({
       query: (storyId) => `/quiz/${storyId}`,

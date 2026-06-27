@@ -7,6 +7,7 @@ export interface ShopItem {
 }
 
 export const shopApi = baseApi.injectEndpoints({
+  overrideExisting: true,
   endpoints: (builder) => ({
     getShopItems: builder.query<ShopItem[], void>({
       query: () => "/shop",

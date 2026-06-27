@@ -12,6 +12,7 @@ export interface ShareCardResponse {
 }
 
 export const growthApi = baseApi.injectEndpoints({
+  overrideExisting: true,
   endpoints: (builder) => ({
     getReferralLink: builder.query<ReferralLinkResponse, void>({
       query: () => "/growth/referral/link",

@@ -20,7 +20,7 @@ export type TUser = {
 export type TAuthState = {
   user: TUser | null;
   token: string | null;
-  refreshToken: string | null;
+  refreshToken?: string | null;
   device_token: string | null;
   hasSeenWelcome: boolean;
 };
@@ -43,13 +43,13 @@ const authSlice = createSlice({
       action: PayloadAction<{
         user: TUser;
         token: string;
-        refreshToken: string;
+        refreshToken?: string | null;
       }>,
     ) => {
       const { user, token, refreshToken } = action.payload;
       state.user = user;
       state.token = token;
-      state.refreshToken = refreshToken;
+      state.refreshToken = refreshToken || null;
       state.hasSeenWelcome = true; // Once logged in, never show welcome screen again
     },
 

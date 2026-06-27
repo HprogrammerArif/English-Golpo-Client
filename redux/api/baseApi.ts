@@ -3,6 +3,7 @@ import { createApi, fetchBaseQuery, retry, BaseQueryFn, FetchArgs, FetchBaseQuer
 import { setCredentials, logout, updateToken } from "../features/auth/authSlice";
 import Toast from "react-native-toast-message"; // or your toast library
 import { RootState } from "../store";
+import { Platform } from "react-native";
 
 export const API_IMAGE_URL = "https://api.floruit.co.uk"
 // export const API_IMAGE_URL = "http://10.10.13.61:8002"
@@ -10,17 +11,25 @@ export const API_IMAGE_URL = "https://api.floruit.co.uk"
 // In production, EXPO_PUBLIC_API_URL must always be set.
 // The ngrok fallback is only for local dev — it will be dead in production.
 const API_URL = (() => {
-  const url = process.env.EXPO_PUBLIC_API_URL;
-  if (!url && !__DEV__) {
+  let url = process.env.EXPO_PUBLIC_API_URL || "https://intensely-optimal-unicorn.ngrok-free.app";
+  url = url.replace(/"/g, "").replace(/\/$/, "");
+
+  if (Platform.OS === "android") {
+    if (url.includes("localhost")) {
+      url = url.replace("localhost", "10.0.2.2");
+    } else if (url.includes("127.0.0.1")) {
+      url = url.replace("127.0.0.1", "10.0.2.2");
+    }
+  }
+
+  if (!process.env.EXPO_PUBLIC_API_URL && !__DEV__) {
     throw new Error("[baseApi] EXPO_PUBLIC_API_URL is not set. Production builds require this env variable.");
   }
-  return (url || "https://intensely-optimal-unicorn.ngrok-free.app")
-    .replace(/"/g, "")
-    .replace(/\/$/, "");
+  return url;
 })();
 export const baseUrl = API_URL;
 const baseQuery = fetchBaseQuery({
-  baseUrl: API_URL,
+  baseUrl: `${API_URL}/api`,
   timeout: 15000, // 15 seconds timeout
   credentials: "include",
   prepareHeaders: (headers, { getState, endpoint }) => {
@@ -53,7 +62,8 @@ const baseQueryWithReauth: BaseQueryFn<
   extraOptions,
 ) => {
   const requestUrl = typeof args === "string" ? args : args.url;
-  if (__DEV__) console.log(`[RTK Query] 📡 Requesting: ${API_URL}/${requestUrl}`);
+  const loggedUrl = requestUrl.startsWith("/") ? requestUrl.slice(1) : requestUrl;
+  if (__DEV__) console.log(`[RTK Query] 📡 Requesting: ${API_URL}/api/${loggedUrl}`);
 
   let result = await baseQuery(args, api, extraOptions);
 

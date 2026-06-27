@@ -5,15 +5,19 @@ import { Ionicons } from "@expo/vector-icons";
 import { useAppSelector } from "@/redux/hooks";
 import { selectCurrentUser } from "@/redux/features/auth/authSlice";
 import { selectDailyGoal } from "@/redux/features/gamification/gameSlice";
+import { useGetStreakQuery } from "@/redux/api/gamificationApi";
+import { StreakFlame } from "@/components/gamification/StreakFlame";
+import { DailyGoalIndicator } from "@/components/gamification/DailyGoalIndicator";
 import { useRouter } from "expo-router";
 
 export default function HomeScreen() {
   const router = useRouter();
   const user = useAppSelector(selectCurrentUser);
   const dailyGoal = useAppSelector(selectDailyGoal);
+  const { data: streakData } = useGetStreakQuery();
 
   const name = user?.name || "Learner";
-  const streak = 3; // Mocked streak (or fetch from user.streak if populated)
+  const streak = streakData?.currentStreak || 0;
   const xpTotal = user?.xpTotal || 0;
   const gems = user?.gems || 0;
   const lives = user?.lives || 5;
@@ -34,10 +38,7 @@ export default function HomeScreen() {
     <SafeAreaView style={styles.safe}>
       {/* Header Bar */}
       <View className="bg-white border-b border-gray-100 px-6 py-4 flex-row justify-between items-center shadow-sm">
-        <View className="flex-row items-center space-x-1">
-          <Ionicons name="flash" size={20} color="#F59E0B" />
-          <Text className="text-base font-extrabold text-gray-700">{streak} Days</Text>
-        </View>
+        <StreakFlame streak={streak} size="small" />
 
         <View className="flex-row items-center space-x-4">
           {/* Gems */}
@@ -58,16 +59,31 @@ export default function HomeScreen() {
 
       <ScrollView contentContainerStyle={styles.container} showsVerticalScrollIndicator={false} className="px-5 py-4">
         {/* Welcome Section */}
-        <View className="mb-6">
-          <Text className="text-xs text-gray-400 font-bold uppercase tracking-wider">Welcome back</Text>
-          <Text className="text-2xl font-black text-gray-800 mt-0.5">Hello, {name}! 👋</Text>
+        <View className="mb-6 flex-row justify-between items-center">
+          <View>
+            <Text className="text-xs text-gray-400 font-bold uppercase tracking-wider">Welcome back</Text>
+            <Text className="text-2xl font-black text-gray-800 mt-0.5">Hello, {name}! 👋</Text>
+          </View>
+          <TouchableOpacity 
+            onPress={() => router.push("/(app)/growth/review-prompt" as any)}
+            className="bg-amber-50 p-2.5 rounded-2xl border border-amber-100"
+          >
+            <Ionicons name="star" size={20} color="#F59E0B" />
+          </TouchableOpacity>
         </View>
 
         {/* Hero Learning Path Card */}
         <View className="bg-emerald-500 rounded-3xl p-6 mb-6 shadow-md shadow-emerald-500/10">
-          <Text className="text-[10px] font-bold text-emerald-100 uppercase tracking-widest bg-emerald-600/40 self-start px-2 py-0.5 rounded-full">
-            Active Learning Path
-          </Text>
+          <TouchableOpacity
+            onPress={() => router.push("/(app)/paths")}
+            className="bg-emerald-600/40 self-start px-2.5 py-1 rounded-full flex-row items-center space-x-1 mb-1"
+          >
+            <Text className="text-[10px] font-bold text-emerald-100 uppercase tracking-widest">
+              Active Learning Path
+            </Text>
+            <Ionicons name="pencil" size={10} color="#fff" style={{ marginLeft: 3 }} />
+          </TouchableOpacity>
+          
           <Text className="text-xl font-extrabold text-white mt-2 leading-tight">
             {currentPathName}
           </Text>
@@ -126,23 +142,8 @@ export default function HomeScreen() {
           </TouchableOpacity>
         </View>
 
-        {/* Daily Goal card */}
-        <View className="bg-white border border-gray-100 p-5 rounded-3xl mb-6 shadow-sm">
-          <View className="flex-row justify-between items-center mb-3">
-            <View>
-              <Text className="text-xs text-gray-400 font-bold uppercase tracking-wide">Daily Target</Text>
-              <Text className="text-base font-bold text-gray-800 mt-0.5">Keep up your daily habits</Text>
-            </View>
-            <Ionicons name="ribbon-outline" size={24} color="#10B981" />
-          </View>
-          <View className="w-full h-3 bg-gray-100 rounded-full overflow-hidden">
-            {/* Compute XP relative progress */}
-            <View style={{ width: `${Math.min(100, (xpTotal / dailyGoal) * 100)}%` }} className="h-full bg-emerald-500" />
-          </View>
-          <Text className="text-xs text-gray-400 font-bold mt-2 text-right">
-            {xpTotal} / {dailyGoal} XP
-          </Text>
-        </View>
+        {/* Daily Goal Progress */}
+        <DailyGoalIndicator xpEarnedToday={xpTotal} dailyGoal={dailyGoal} />
       </ScrollView>
     </SafeAreaView>
   );

@@ -12,12 +12,16 @@ export interface LocalBookmark {
 
 export interface ProgressState {
   completedStoryIds: string[];
+  unlockedLevels: string[];
   bookmarks: LocalBookmark[];
+  storyProgress: Record<string, { currentPageIndex: number; isCompleted: boolean }>;
 }
 
 const initialState: ProgressState = {
   completedStoryIds: [],
+  unlockedLevels: ["1"], // Default to level 1 unlocked
   bookmarks: [],
+  storyProgress: {},
 };
 
 const progressSlice = createSlice({
@@ -42,12 +46,41 @@ const progressSlice = createSlice({
       if (!state.completedStoryIds.includes(action.payload)) {
         state.completedStoryIds.push(action.payload);
       }
+      if (state.storyProgress[action.payload]) {
+        state.storyProgress[action.payload].isCompleted = true;
+      } else {
+        state.storyProgress[action.payload] = { currentPageIndex: 0, isCompleted: true };
+      }
+    },
+    updateStoryPageProgress: (state, action: PayloadAction<{ storyId: string; pageIndex: number; isCompleted?: boolean }>) => {
+      const { storyId, pageIndex, isCompleted = false } = action.payload;
+      state.storyProgress[storyId] = {
+        currentPageIndex: pageIndex,
+        isCompleted: isCompleted || (state.storyProgress[storyId]?.isCompleted || false),
+      };
+    },
+    unlockLevel: (state, action: PayloadAction<string>) => {
+      if (!state.unlockedLevels.includes(action.payload)) {
+        state.unlockedLevels.push(action.payload);
+      }
     },
   },
 });
 
-export const { addBookmark, removeBookmarkByWord, setBookmarksList, markStoryAsCompleted } = progressSlice.actions;
+export const {
+  addBookmark,
+  removeBookmarkByWord,
+  setBookmarksList,
+  markStoryAsCompleted,
+  updateStoryPageProgress,
+  unlockLevel,
+} = progressSlice.actions;
+
 export default progressSlice.reducer;
 
 export const selectLocalBookmarks = (state: RootState) => state.progress.bookmarks;
 export const selectCompletedStories = (state: RootState) => state.progress.completedStoryIds;
+export const selectUnlockedLevels = (state: RootState) => state.progress.unlockedLevels;
+export const selectStoryProgress = (state: RootState) => state.progress.storyProgress;
+export const selectSingleStoryProgress = (storyId: string) => (state: RootState) => state.progress.storyProgress[storyId];
+

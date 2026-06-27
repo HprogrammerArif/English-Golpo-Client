@@ -11,6 +11,7 @@ import { selectCurrentToken } from "@/redux/features/auth/authSlice";
 export default function AppLayout() {
   const token = useAppSelector(selectCurrentToken);
 
+
   useEffect(() => {
     if (!token) {
       router.replace("/(auth)/login");

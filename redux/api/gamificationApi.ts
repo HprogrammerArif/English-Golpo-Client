@@ -22,6 +22,7 @@ export interface LeaderboardResponse {
 }
 
 export const gamificationApi = baseApi.injectEndpoints({
+  overrideExisting: true,
   endpoints: (builder) => ({
     addXp: builder.mutation<{ success: boolean; xpTotal: number; levelUp: boolean; newLevel: number }, number>({
       query: (amount) => ({
