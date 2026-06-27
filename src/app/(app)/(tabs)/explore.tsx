@@ -48,7 +48,13 @@ export default function ExploreScreen() {
     }
   };
 
-  const filteredStories = (stories || []).filter((story) => {
+  const storyList = Array.isArray(stories)
+    ? stories
+    : (stories && typeof stories === "object" && "stories" in (stories as any) && Array.isArray((stories as any).stories))
+    ? (stories as any).stories
+    : [];
+
+  const filteredStories = storyList.filter((story: any) => {
     const matchesSearch =
       query === "" ||
       story.title.toLowerCase().includes(query.toLowerCase()) ||

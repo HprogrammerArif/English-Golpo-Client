@@ -19,11 +19,17 @@ export default function DownloadManagerScreen() {
   const [downloadingId, setDownloadingId] = useState<string | null>(null);
   const [downloadProgress, setDownloadProgress] = useState(0);
 
+  const storyList = Array.isArray(stories)
+    ? stories
+    : (stories && typeof stories === "object" && "stories" in (stories as any) && Array.isArray((stories as any).stories))
+    ? (stories as any).stories
+    : [];
+
   // Check downloaded status on load
   const refreshDownloads = async () => {
-    if (!stories) return;
+    if (storyList.length === 0) return;
     const downloaded: string[] = [];
-    for (const story of stories) {
+    for (const story of storyList) {
       const isOk = await isStoryDownloaded(story.id);
       if (isOk) {
         downloaded.push(story.id);
@@ -112,7 +118,7 @@ export default function DownloadManagerScreen() {
         </Text>
 
         <View className="space-y-4">
-          {stories?.map((story) => {
+          {storyList.map((story: any) => {
             const isCached = downloadedIds.includes(story.id);
             const isDownloading = downloadingId === story.id;
 

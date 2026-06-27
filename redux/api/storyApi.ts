@@ -55,6 +55,7 @@ export const storyApi = baseApi.injectEndpoints({
         url: "/stories",
         params,
       }),
+      transformResponse: (response: any) => response?.stories || [],
       providesTags: ["Story"],
     }),
     getStoryById: builder.query<Story, string>({

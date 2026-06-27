@@ -67,6 +67,11 @@ const baseQueryWithReauth: BaseQueryFn<
 
   let result = await baseQuery(args, api, extraOptions);
 
+  // Globally unwrap NestJS enveloped responses ({ success: true, data: ... })
+  if (result.data && typeof result.data === "object" && "success" in result.data && "data" in result.data) {
+    result.data = (result.data as any).data;
+  }
+
   // Check if this is an approve/reject endpoint
   const isApproveRejectEndpoint = requestUrl?.includes('/expenses/approve/');
   const is403Error = result.error?.status === 403;
@@ -124,6 +129,11 @@ const baseQueryWithReauth: BaseQueryFn<
 
         // Retry original request
         result = await baseQuery(args, api, extraOptions);
+        
+        // Globally unwrap NestJS enveloped responses for retried request
+        if (result.data && typeof result.data === "object" && "success" in result.data && "data" in result.data) {
+          result.data = (result.data as any).data;
+        }
       } else {
         throw new Error("Refresh failed");
       }
