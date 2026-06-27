@@ -46,7 +46,20 @@ export default function TabLayout() {
           ),
         }}
       />
-    
+      <Tabs.Screen
+        name="practice"
+        options={{
+          title: "Practice",
+          tabBarIcon: ({ focused }) => (
+            <TabBarIcon
+              focused={focused}
+              iconName="flash-outline"
+              iconNameFocused="flash"
+              label="Practice"
+            />
+          ),
+        }}
+      />
       <Tabs.Screen
         name="leaderboard"
         options={{

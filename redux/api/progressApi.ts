@@ -68,8 +68,62 @@ export const progressApi = baseApi.injectEndpoints({
       }),
       invalidatesTags: ["Bookmarks"],
     }),
+    getMistakes: builder.query<UserMistake[], void>({
+      query: () => "/progress/mistakes",
+      providesTags: ["Mistakes"],
+    }),
+    addMistake: builder.mutation<UserMistake, { type: "WORD" | "SENTENCE"; englishText: string; banglaText: string }>({
+      query: (body) => ({
+        url: "/progress/mistakes",
+        method: "POST",
+        body,
+      }),
+      invalidatesTags: ["Mistakes"],
+    }),
+    resolveMistake: builder.mutation<UserMistake, { id: string }>({
+      query: (body) => ({
+        url: "/progress/mistakes/resolve",
+        method: "POST",
+        body,
+      }),
+      invalidatesTags: ["Mistakes"],
+    }),
+    getSentencePatterns: builder.query<SentencePattern[], void>({
+      query: () => "/progress/sentence-patterns",
+    }),
+    getLearnedWords: builder.query<Bookmark[], void>({
+      query: () => "/progress/learned",
+      providesTags: ["Bookmarks"],
+    }),
+    toggleLearnedWord: builder.mutation<Bookmark, { word: string }>({
+      query: (body) => ({
+        url: "/progress/learned/toggle",
+        method: "POST",
+        body,
+      }),
+      invalidatesTags: ["Bookmarks"],
+    }),
   }),
 });
+
+export interface UserMistake {
+  id: string;
+  type: "WORD" | "SENTENCE";
+  englishText: string;
+  banglaText: string;
+  incorrectCount: number;
+  corrected: boolean;
+  createdAt: string;
+}
+
+export interface SentencePattern {
+  id: string;
+  pattern: string;
+  patternBn: string;
+  exampleEn: string;
+  exampleBn: string;
+  category: string;
+}
 
 export const {
   useSyncProgressMutation,
@@ -78,4 +132,10 @@ export const {
   useRemoveBookmarkMutation,
   useGetFlashcardQueueQuery,
   useSubmitFlashcardResultMutation,
+  useGetMistakesQuery,
+  useAddMistakeMutation,
+  useResolveMistakeMutation,
+  useGetSentencePatternsQuery,
+  useGetLearnedWordsQuery,
+  useToggleLearnedWordMutation,
 } = progressApi;

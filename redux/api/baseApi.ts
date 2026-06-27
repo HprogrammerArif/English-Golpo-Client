@@ -199,6 +199,7 @@ export const baseApi = createApi({
     "Quiz",
     "Leaderboard",
     "Bookmarks",
+    "Mistakes",
     "Subscription",
     "documents",
     "Milestones",
