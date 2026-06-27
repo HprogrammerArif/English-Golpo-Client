@@ -31,12 +31,13 @@ src/
 │   │   └── forgot-password.tsx      # Password recovery
 │   └── (app)/                       # Authenticated Guarded Group
 │       ├── _layout.tsx              # Tabs and auth redirect gate
-│       ├── (tabs)/                  # Main Navigation Tabs
-│       │   ├── index.tsx            # Home Tab (Dashboard: Goals, Streaks, Paths)
+│       ├── (tabs)/                  # Main Navigation Tabs (5 bottom tabs)
+│       │   ├── index.tsx            # Home Tab (Dashboard: Goals, Streaks, Paths, Notifications)
 │       │   ├── explore.tsx          # Stories Tab (Learning paths, categorized books)
-│       │   ├── leaderboard.tsx      # Leagues & Leaderboard Rankings
-│       │   ├── profile.tsx          # Profile & Gamification Stats (XP, Badges)
-│       │   └── notifications.tsx    # Notifications Tab
+│       │   ├── practice.tsx         # Practice Tab (Spoken English, Flashcards, Mistakes, Bookmarks)
+│       │   ├── video.tsx            # Video Tab (Kids & Students YouTube English classes)
+│       │   ├── profile.tsx          # Profile / Me Tab (XP, Gems, Streak, and embedded Leaderboard Banner)
+│       │   └── leaderboard.tsx      # Leagues & Leaderboard Rankings (Hidden from TabBar, deep linked)
 │       ├── paths/                   # Learning Path Selection screen
 │       ├── shop/
 │       │   └── index.tsx            # Virtual Currency Store (Gems, Lives, Streak Freezes)
@@ -164,59 +165,74 @@ module.exports = {
 
 ## 4. State Management Specifications (Redux & RTK Query)
 
-### Redux Slices
+### RTK Query API Slices (`redux/api/`)
 
-We model user session, progress tracking, and offline data queue natively in Redux.
+All server communication goes through RTK Query slices that inject endpoints into the central `baseApi`. The `baseApi` handles JWT auth headers, token refresh, retry on network failure, and global error toasts.
 
-#### A. User & Authentication Slice (`redux/features/auth/authSlice.ts`)
-Tracks tokens, active subscriptions, and profile identifiers.
+| API Slice File | Base Path | Key Hooks |
+|----------------|-----------|-----------|
+| `authApi.ts` | `/auth` | `useLoginMutation`, `useRegisterMutation`, `useGetMeQuery`, `useUpdateMeMutation` |
+| `storyApi.ts` | `/stories` | `useGetStoriesQuery`, `useGetStoryByIdQuery` |
+| `gamificationApi.ts` | `/gamification` | `useGetStreakQuery`, `useGetLeaderboardQuery`, `useAddXpMutation`, `useGetDailyGoalQuery` |
+| `progressApi.ts` | `/progress` | `useGetBookmarksQuery`, `useAddBookmarkMutation`, `useGetMistakesQuery`, `useGetSentencePatternsQuery`, `useGetLearnedQuery`, `useReviewFlashcardMutation` |
+| `quizApi.ts` | `/quiz` | `useSubmitQuizMutation` |
+| `shopApi.ts` | `/shop` | `useGetShopItemsQuery`, `useBuyItemMutation` |
+| `paymentApi.ts` | `/payment` | `useGetSubscriptionPlansQuery`, `useGetMySubscriptionQuery`, `useCreateBkashPaymentMutation` |
+| `growthApi.ts` | `/growth` | `useCreateReferralMutation`, `useRedeemReferralMutation` |
+| `accountsApi.ts` | `/accounts` | `useGetChildrenQuery`, `useGetInvitationsQuery` |
+| `videoApi.ts` | `/video` | `useGetVideosQuery`, `useGetVideoByIdQuery`, `useGetMyVideoProgressQuery`, `useTrackVideoProgressMutation` ✨ NEW |
+
+### Redux Slices (`redux/features/`)
+
+#### A. Authentication Slice (`redux/features/auth/authSlice.ts`)
+Persisted to AsyncStorage via Redux Persist. Stores JWT, refresh token, and full user profile.
 ```typescript
 interface AuthState {
   token: string | null;
+  refreshToken?: string | null;
   user: {
     id: string;
     name: string;
-    email: string;
-    phone?: string;
-    role: 'free' | 'premium';
+    email: string | null;
+    phone?: string | null;
+    role: 'FREE' | 'PREMIUM' | 'ADMIN';
     learningPath: 'KIDS' | 'SPOKEN' | 'IELTS' | 'ADMISSION' | 'JOB' | 'VOCAB' | null;
+    nctbClass?: number | null;
+    xpTotal: number;
+    gems: number;
+    lives: number;
+    league: string;
+    avatarUrl?: string | null;
+    createdAt: string;
   } | null;
 }
 ```
 
-#### B. Gamification & Streak Slice (`redux/features/gamification/gameSlice.ts`)
-Maintains dynamic stats such as active streak, XP earned today, levels, completed daily challenges, lives, and virtual currency.
+#### B. Gamification Slice (`redux/features/gamification/gameSlice.ts`)
+Local optimistic updates for XP, lives, gems and streak before server sync.
 ```typescript
 interface GameState {
   streak: number;
-  lastActiveDate: string | null; // ISO Date String
+  longestStreak: number;
+  lastActiveDate: string | null;
   xpPoints: number;
   level: number;
-  lives: number; // Max 5, regenerates over time
-  gems: number; // Earned by completing lessons, used in shop
+  lives: number;          // Max 5, regenerates over time
+  gems: number;           // Earned by completing lessons, used in shop
   league: 'BRONZE' | 'SILVER' | 'GOLD' | 'PLATINUM' | 'DIAMOND';
-  dailyGoalXp: number; // e.g. 50 XP
+  dailyGoalXp: number;    // e.g. 50 XP target
   dailyXpEarned: number;
   achievements: { id: string; unlockedAt: string }[];
 }
 ```
 
-#### C. User Progress & Bookmark Slice (`redux/features/progress/progressSlice.ts`)
-Tracks finished lessons, unlocked levels, bookmarked vocabulary, and custom user flashcards.
+#### C. Progress Slice (`redux/features/progress/progressSlice.ts`)
+Tracks finished lessons, unlocked levels, bookmarked vocabulary.
 ```typescript
-interface Bookmark {
-  id: string;
-  word: string;
-  meaning: string;
-  contextSentence: string;
-  storyId: string;
-  savedAt: string;
-}
-
 interface ProgressState {
-  completedLessons: string[]; // List of lesson IDs
-  unlockedLevels: string[]; // List of level IDs
-  bookmarks: Bookmark[];
+  completedLessons: string[];   // storyId list
+  unlockedLevels: string[];     // level IDs
+  bookmarks: Bookmark[];        // locally cached bookmarks
   storyProgress: Record<string, { currentPageIndex: number; isCompleted: boolean }>;
 }
 ```

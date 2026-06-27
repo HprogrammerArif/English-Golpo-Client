@@ -212,7 +212,9 @@ export const baseApi = createApi({
     "Expense",
     "HomeScreenSentimentGraph",
     "NotificationPreferences",
-    "NotificationHistory"
+    "NotificationHistory",
+    "Videos",
+    "VideoProgress"
   ] as const,
   endpoints: (builder) => ({}),
 });

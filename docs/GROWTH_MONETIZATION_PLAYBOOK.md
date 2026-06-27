@@ -18,6 +18,8 @@
 10. [Retention Engineering — The Habit Loop](#10-retention-engineering--the-habit-loop)
 11. [Content Roadmap for Bangladesh Context](#11-content-roadmap-for-bangladesh-context)
 12. [Revenue Dashboard & Analytics KPIs](#12-revenue-dashboard--analytics-kpis)
+13. [Video Learning — Growth & Engagement Engine](#13-video-learning--growth--engagement-engine) ✨ NEW
+14. [Practice Hub — Retention & Stickiness Engine](#14-practice-hub--retention--stickiness-engine) ✨ NEW
 
 ---
 
@@ -56,11 +58,17 @@ FREE TIER
   • 5 Lives (regenerates in 4 hours)
   • AdMob banner + interstitials
   • Basic vocabulary bookmarks
+  • Practice Hub: up to 20 flashcard reviews/day
+  • Video Learning: up to 5 videos/day (standard quality)
+  • Leaderboard: view your rank (cannot compete in league)
 
 PREMIUM — MONTHLY  (79 BDT / ~0.65 USD)
   • Unlimited stories & lessons
   • Infinite lives + offline downloads
   • No ads + advanced streak features
+  • Practice Hub: unlimited flashcards, full mistake log, spoken patterns
+  • Video Learning: unlimited HD videos (all learning paths)
+  • Leaderboard: compete in weekly league rankings for prizes
   • Pronunciation AI (ELSA-like scoring)
 
 PREMIUM — YEARLY  (599 BDT / ~5 USD, 37% savings)
@@ -68,11 +76,13 @@ PREMIUM — YEARLY  (599 BDT / ~5 USD, 37% savings)
   • Priority customer support
   • Early access to new content paths
   • Exclusive "Champion" badge + avatar
+  • Video Learning: early access to new video series
 
 FAMILY PLAN  (249 BDT/mo for up to 4 profiles)
   • Premium for up to 4 linked child accounts
   • Parental dashboard with weekly PDF progress reports
   • Dedicated "Kids Safe" content filter
+  • Video Learning: curated Kids-only channel with parent approval
 ```
 
 ### Backend Implementation Note
@@ -544,6 +554,8 @@ INSTALL → ONBOARDING COMPLETE → PAYWALL VIEW → FREE-TO-PAID → RENEWAL
 | **P1** | Spaced repetition flashcard system | Medium | Very High |
 | **P1** | WhatsApp score card sharing | Medium | High |
 | **P1** | NCTB-aligned content tagging | Low | Extremely High |
+| **P1** | Video Learning tab (YouTube-embedded) | Low | Extremely High | ✅ IMPLEMENTED |
+| **P1** | Practice Hub (Spoken, Mistakes, Flashcards) | Medium | Very High | ✅ IMPLEMENTED |
 | **P2** | Data saver mode | Low | High |
 | **P2** | Friend challenge system | High | High |
 | **P2** | Adaptive difficulty engine | High | Very High |
@@ -551,4 +563,73 @@ INSTALL → ONBOARDING COMPLETE → PAYWALL VIEW → FREE-TO-PAID → RENEWAL
 
 ---
 
-*Last Updated: 2026-06-26 · English Golpo Product Team*
+## 13. Video Learning — Growth & Engagement Engine ✨ NEW
+
+> **Implemented**: `src/app/(app)/(tabs)/video.tsx` · Backend: `/api/video` · DB: `VideoLesson`, `VideoProgress`
+
+### Why Video Wins in Bangladesh
+- **Mobile YouTube culture**: Bangladesh has 45M+ YouTube users; kids and students already learn from YouTube. Meeting them in the same format removes adoption friction.
+- **Parent trust**: Parents recognise curated, structured video content as high-value education, and are more willing to pay for it.
+- **SEO & Discovery**: Premium video content tied to "NCTB Class 6 English" or "IELTS Writing Band 7" keywords drives organic search installs.
+
+### How It Drives Revenue
+| Mechanic | Impact |
+|----------|--------|
+| Free users: 5 videos/day cap | Creates upgrade pressure after the 5th video |
+| Premium: unlimited HD videos | Core premium value proposition for video-native users |
+| XP on video completion (+15 XP) | Keeps streak alive, increases daily active usage |
+| IELTS/VOCAB videos marked `isPremium: true` | Hard paywall → highest-intent users convert |
+| Family plan: Kids-only curated channel | Parents subscribe for child safety + curriculum alignment |
+
+### Content Strategy
+- **Kids path**: Nursery rhymes, animated stories, animal/color/number songs (YouTube embeds of existing quality channels)
+- **Spoken path**: Daily conversation dialogues, pronunciation tips, confidence-building series
+- **IELTS path**: Writing Task 2, Speaking Part 2, Listening practice (premium-only)
+- **NCTB class alignment**: Videos tagged by `nctbClass` (6, 7, 8, 9, 10) drive B2B school sales
+
+### Technical Implementation
+- `VideoLesson` stores `youtubeId` for embedding via `react-native-webview`
+- `VideoProgress.watchedSeconds` enables "Continue Watching" feature
+- `VideoProgress.completed = true` triggers 15 XP award on first completion
+- All video routes protected by `JwtAuthGuard`; `isPremium` videos require `role === PREMIUM` check (to be enforced at service layer)
+
+---
+
+## 14. Practice Hub — Retention & Stickiness Engine ✨ NEW
+
+> **Implemented**: `src/app/(app)/(tabs)/practice.tsx` · Backend: `/api/progress` (mistakes, bookmarks, learned, patterns)
+
+### Why Practice = Retention
+Duolingo's biggest retention driver is **daily habit formation**. The Practice Hub creates 5 separate reasons to open the app every day:
+
+| Feature | Daily Habit | Revenue Impact |
+|---------|------------|----------------|
+| SM-2 Flashcard Review | "Words due for review today" notification | Reduces churn, justifies subscription |
+| Spoken English Patterns | New pattern every day → feeling of progress | Upgrades from KIDS/SPOKEN users |
+| Mistake Log | "Fix yesterday's mistakes" | Creates accountability loop |
+| Bookmarks (Learned/Unlearned) | Satisfying completion animation | Re-engagement after inactivity |
+| Sentence Practice | Type-along exercises | Unlocks premium sentence packs |
+
+### SM-2 Spaced Repetition System
+Implemented on the `Bookmark` model:
+- `interval`: days until next review (grows exponentially on success)
+- `easeFactor`: SM-2 algorithm ease multiplier (starts at 2.5)
+- `repetitions`: number of successful reviews
+- `nextReviewAt`: due date — drives "Review Due" badge on tab icon
+
+```
+Quality 0-1 → Reset interval to 1 day
+Quality 2-3 → Keep same interval
+Quality 4-5 → interval = interval × easeFactor
+```
+
+### Auto-Mistake Logging (QuizService Integration)
+When a user answers a quiz question incorrectly, `QuizService.submitQuiz()` automatically creates a `UserMistake` record. The Practice Hub's Mistakes tab surfaces these for targeted revision — a feature no other Bangladesh app offers.
+
+### Monetization Gate
+- **Free**: 20 flashcard reviews/day, mistake log (last 7 days)
+- **Premium**: Unlimited reviews, full mistake history, all sentence patterns, export/share progress card
+
+---
+
+*Last Updated: 2026-06-27 · English Golpo Product Team*

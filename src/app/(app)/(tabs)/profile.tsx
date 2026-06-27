@@ -176,6 +176,27 @@ export default function ProfileScreen() {
           </View>
         </View>
 
+        {/* ── Leaderboard Banner ─────────────────────────────── */}
+        <TouchableOpacity
+          style={styles.leaderboardBanner}
+          onPress={() => router.push("/(app)/(tabs)/leaderboard" as any)}
+          activeOpacity={0.85}
+        >
+          <LinearGradient
+            colors={["#F59E0B", "#EF4444"]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 0 }}
+            style={styles.leaderboardGrad}
+          >
+            <Text style={styles.leaderboardEmoji}>🏆</Text>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.leaderboardTitle}>লিগ র‍্যাঙ্কিং</Text>
+              <Text style={styles.leaderboardSub}>Leaderboard · আপনার অবস্থান দেখুন</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={20} color="rgba(255,255,255,0.8)" />
+          </LinearGradient>
+        </TouchableOpacity>
+
         <View style={styles.menuSection}>
           <Text style={styles.menuSectionTitle}>⭐ বেড়ে উঠুন</Text>
           <View style={styles.menuCard}>
@@ -244,6 +265,13 @@ const styles = StyleSheet.create({
   menuLabel:        { fontSize: 14, fontWeight: "700", color: "#1F2937" },
   menuSub:          { fontSize: 11, color: "#9CA3AF", fontWeight: "600", marginTop: 1 },
   divider:          { height: 1, backgroundColor: "#F3F4F6", marginLeft: 68 },
+
+  /* Leaderboard banner */
+  leaderboardBanner:{ marginHorizontal: 16, marginBottom: 16, borderRadius: 20, overflow: "hidden" },
+  leaderboardGrad:  { flexDirection: "row", alignItems: "center", padding: 16, gap: 12 },
+  leaderboardEmoji: { fontSize: 28 },
+  leaderboardTitle: { fontSize: 16, fontWeight: "900", color: "#fff" },
+  leaderboardSub:   { fontSize: 11, color: "rgba(255,255,255,0.8)", fontWeight: "600", marginTop: 2 },
 
   version:  { textAlign: "center", fontSize: 11, color: "#9CA3AF", fontWeight: "600", marginTop: 8 },
 });

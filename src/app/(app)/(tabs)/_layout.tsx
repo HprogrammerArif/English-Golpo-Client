@@ -1,11 +1,15 @@
 import { Tabs } from "expo-router";
-import { Platform, StyleSheet, View } from "react-native";
+import { Platform, StyleSheet } from "react-native";
 import { TabBarIcon } from "@/components/TabBarIcon";
 
 /**
- * Tab Navigator — 4 tabs: Home, Explore, Leagues, Profile
- * Notifications moved to Home header icon.
- * Notifications tab removed per UX redesign.
+ * Tab Navigator — 5 tabs: Home, Stories, Practice, Video, Me
+ *
+ * Navigation design decisions:
+ * - Leaderboard moved INTO Profile/Me tab (as a scrollable section)
+ * - Notifications icon stays in Home header
+ * - Video tab added for English-learning video content (kids + students)
+ * - leaderboard screen hidden from tab bar (href: null) but still accessible
  */
 export default function TabLayout() {
   return (
@@ -35,7 +39,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="explore"
         options={{
-          title: "Explore",
+          title: "Stories",
           tabBarIcon: ({ focused }) => (
             <TabBarIcon
               focused={focused}
@@ -61,23 +65,28 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
-        name="leaderboard"
+        name="video"
         options={{
-          title: "Leagues",
+          title: "Videos",
           tabBarIcon: ({ focused }) => (
             <TabBarIcon
               focused={focused}
-              iconName="trophy-outline"
-              iconNameFocused="trophy"
-              label="Leagues"
+              iconName="play-circle-outline"
+              iconNameFocused="play-circle"
+              label="Videos"
             />
           ),
         }}
       />
+      {/* Leaderboard hidden from tab bar — embedded inside Profile screen */}
+      <Tabs.Screen
+        name="leaderboard"
+        options={{ href: null }}
+      />
       <Tabs.Screen
         name="profile"
         options={{
-          title: "Profile",
+          title: "Me",
           tabBarIcon: ({ focused }) => (
             <TabBarIcon
               focused={focused}

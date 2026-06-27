@@ -20,10 +20,10 @@ The `English Golpo` backend is built as a robust, highly scalable REST API desig
 We employ a domain-driven module structure where each capability (auth, story, payment) holds its controllers, services, database wrappers, and DTOs.
 
 ```
-backend/
+backend-en-golpo-nest/
 ├── src/
-│   ├── app.module.ts                 # Root NestJS Module
-│   ├── main.ts                       # Server bootstrap script (CORS, Pipes, Swagger)
+│   ├── app.module.ts                 # Root NestJS Module (registers all 11 domain modules)
+│   ├── main.ts                       # Server bootstrap (CORS, ValidationPipe, Swagger)
 │   │
 │   ├── common/                       # Shared Utilities & NestJS Elements
 │   │   ├── decorators/               # @CurrentUser, @Public route decorators
@@ -31,25 +31,31 @@ backend/
 │   │   ├── guards/                   # JwtAuthGuard, RolesGuard
 │   │   └── interceptors/             # LoggingInterceptor, TransformInterceptor
 │   │
-│   ├── modules/                      # Domain Modules
-│   │   ├── auth/                     # Auth module (Google, Apple, Phone OTP)
-│   │   ├── user/                     # Profile details, current path config
-│   │   ├── story/                    # Book chapters, page mapping, word transcripts
-│   │   ├── quiz/                     # Quiz validation and progress tracking
-│   │   ├── gamification/             # XP tracking, streaks scheduler, levels
-│   │   └── payment/                  # Payment integrations (bKash, Nagad, Stripe, IAP)
+│   ├── modules/                      # Domain Modules (all implemented)
+│   │   ├── auth/                     # JWT auth: phone OTP, email/password login & register
+│   │   ├── user/                     # Profile CRUD, path change, NCTB class
+│   │   ├── story/                    # Stories, sentences, word tokens, paywall enforcement
+│   │   ├── quiz/                     # Quiz validation, score tracking, auto mistake logging
+│   │   ├── gamification/             # XP, streaks, leagues, leaderboard, daily goals
+│   │   ├── progress/                 # Bookmarks (SM-2), flashcard reviews, mistakes, sentence patterns, learned vocab
+│   │   ├── shop/                     # Gem-based virtual economy (Streak Freeze, Lives, Avatars)
+│   │   ├── payment/                  # bKash, Nagad, Stripe, RevenueCat webhook integration
+│   │   ├── growth/                   # Referrals, share-card generation, app review prompts
+│   │   ├── accounts/                 # Parental control, B2B org management, child linking
+│   │   └── video/                    # Video lessons (YouTube-embedded), watch progress, XP awards
 │   │
 │   └── prisma/
 │       ├── prisma.module.ts          # Exposes PrismaService globally
-│       └── prisma.service.ts         # Prisma DB Connection manager
+│       └── prisma.service.ts         # Prisma DB Connection + PrismaPg adapter
 │
 ├── prisma/
-│   ├── schema.prisma                 # PostgreSQL database schemas
-│   └── seed.ts                       # Pre-populate levels, stories, and vocab tokens
+│   ├── schema.prisma                 # Full PostgreSQL schema (20+ models)
+│   ├── prisma.config.ts              # Prisma config (datasource URL, schema path)
+│   ├── migrations/                   # Auto-generated SQL migration files
+│   └── seed.ts                       # Seeds: admin user, stories, sentence patterns, video lessons
 │
-├── test/                             # E2E test suites
-├── docker-compose.yml                # Config for PostgreSQL & Redis
-├── Dockerfile                        # Multi-stage production build configuration
+├── docker-compose.yml                # PostgreSQL (port 5433) & Redis containers
+├── Dockerfile                        # Multi-stage production build
 └── package.json
 ```
 
@@ -57,275 +63,142 @@ backend/
 
 ## 3. Database Schema (Prisma ORM & PostgreSQL)
 
-The schema defines learning paths, story translation structures, bookmarks, streaks, and payment records.
+The schema defines learning paths, story translation structures, bookmarks (with SM-2 spaced repetition), streaks, payment records, practice features, and video lessons. Below is a summary of every model in the current schema.
 
-```prisma
-datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
-}
 
-generator client {
-  provider = "prisma-client-js"
-}
+### Enums
 
-enum LearningPath {
-  KIDS
-  SPOKEN
-  IELTS
-  ADMISSION
-  JOB
-  VOCAB
-}
+| Enum | Values |
+|------|--------|
+| `LearningPath` | `KIDS`, `SPOKEN`, `IELTS`, `ADMISSION`, `JOB`, `VOCAB` |
+| `PaymentGateway` | `BKASH`, `NAGAD`, `STRIPE`, `PLAY_STORE`, `APP_STORE` |
+| `SubscriptionStatus` | `ACTIVE`, `EXPIRED`, `CANCELLED`, `PENDING` |
 
-enum PaymentGateway {
-  BKASH
-  NAGAD
-  STRIPE
-  PLAY_STORE
-  APP_STORE
-}
+### Models Overview
 
-enum SubscriptionStatus {
-  ACTIVE
-  EXPIRED
-  CANCELLED
-  PENDING
-}
+| Model | Key Fields | Purpose |
+|-------|-----------|---------|
+| `User` | id, email, phone, passwordHash, name, role, learningPath, xpTotal, gems, lives, league, nctbClass | Core user account |
+| `OtpRequest` | phone, code, expiresAt, verified | Phone OTP verification |
+| `Story` | id, title, titleBn, description, level, learningPath, isPremium, isPublished, wordCount | English learning story units |
+| `StoryPage` | storyId, pageIndex, imageUrl | Individual pages within a story |
+| `Sentence` | pageId, sentenceIdx, englishText, banglaText, startTime, endTime | Audio-synced bilingual sentences |
+| `WordToken` | sentenceId, english, bangla, sentenceContext, pronunciationG | Tappable vocabulary tokens |
+| `Bookmark` | userId, wordTokenId, englishWord, banglaMeaning, nextReviewAt, interval, easeFactor, repetitions, isLearned | Vocabulary bookmarks with **SM-2 spaced repetition** |
+| `FlashcardReview` | userId, word, quality (0-5), reviewedAt | SM-2 review quality history |
+| `UserProgress` | userId, storyId, completed, score, xpEarned | Story completion tracking |
+| `Streak` | userId, currentStreak, longestStreak, lastActiveDate | Daily learning streak |
+| `DailyGoal` | userId, date, targetXp, earnedXp, completed | Daily XP goal tracking |
+| `LeaderboardEntry` | userId, league, weekStarting, xpEarned | Weekly XP for league rankings |
+| `UserItem` | userId, itemType (STREAK_FREEZE, AVATAR_OUTFIT), quantity | Virtual shop inventory |
+| `Subscription` | userId, gateway, status, planType, expiryDate, seatCount | Premium subscription records |
+| `PaymentTransaction` | userId, gateway, transactionId, amount, currency, status | Payment audit log |
+| `Referral` | referrerId, refereeId, status, rewardGranted | Referral tracking |
+| `B2BOrganization` | name, type, licenseCount, adminId | School/tutorial center accounts |
+| `FriendChallenge` | senderId, receiverId, storyId, senderScore, receiverScore, status | PvP story score challenges |
+| `StudyGroup` | name, inviteCode, maxSize | Group study feature |
+| `StudyGroupMember` | groupId, userId, weeklyXp | Group membership |
+| `SentencePattern` | pattern, patternBn, exampleEn, exampleBn, category | Spoken English templates ✨ |
+| `UserMistake` | userId, type (WORD\|SENTENCE), englishText, banglaText, incorrectCount, corrected | Auto-logged quiz mistakes ✨ |
+| `VideoLesson` | id, title, titleBn, youtubeId, thumbnailUrl, durationSeconds, learningPath, level, isPremium | YouTube-embedded video lessons ✨ NEW |
+| `VideoProgress` | userId, videoId, watchedSeconds, completed, xpEarned | Video watch tracking ✨ NEW |
 
-model User {
-  id            String             @id @default(uuid())
-  email         String?            @unique
-  phone         String?            @unique
-  passwordHash  String?
-  name          String
-  avatarUrl     String?
-  role          String             @default("FREE") // FREE or PREMIUM
-  learningPath  LearningPath?
-  lives         Int                @default(5)
-  gems          Int                @default(0)
-  league        String             @default("BRONZE")
-  lastLifeRefill DateTime?
-  parentId      String?            // Links to parent account
-  createdAt     DateTime           @default(now())
-  updatedAt     DateTime           @updatedAt
-  
-  // Relations
-  progress      UserProgress[]
-  streak        Streak?
-  dailyGoals    DailyGoal[]
-  bookmarks     Bookmark[]
-  subscriptions Subscription[]
-  payments      PaymentTransaction[]
-  inventory     UserItem[]
-  children      User[]             @relation("ParentChild")
-  parent        User?              @relation("ParentChild", fields: [parentId], references: [id])
-  organizationId String?
-  organization  B2BOrganization?   @relation(fields: [organizationId], references: [id])
-  referralsMade Referral[]         @relation("Referrer")
-  referralsRecv Referral[]         @relation("Referee")
-}
+> ✨ = Added in Practice Hub / Video expansion (not in original architecture doc)
 
-model Story {
-  id              String         @id @default(uuid())
-  title           String
-  description     String
-  level           Int            // Level 1 (Kids), 2 (Inter), etc.
-  learningPath    LearningPath
-  illustrationUrl String
-  audioUrl        String
-  createdAt       DateTime       @default(now())
-  
-  // Relations
-  pages           StoryPage[]
-  progress        UserProgress[]
-}
-
-model StoryPage {
-  id        String     @id @default(uuid())
-  storyId   String
-  story     Story      @relation(fields: [storyId], references: [id], onDelete: Cascade)
-  pageIndex Int
-  imageUrl  String
-
-  // Relations
-  sentences Sentence[]
-}
-
-model Sentence {
-  id          String      @id @default(uuid())
-  pageId      String
-  page        StoryPage   @relation(fields: [pageId], references: [id], onDelete: Cascade)
-  sentenceIdx Int
-  englishText String
-  banglaText  String
-  startTime   Float       // Audio offset timestamp in seconds
-  endTime     Float       // Audio offset timestamp in seconds
-
-  // Relations
-  tokens      WordToken[]
-}
-
-model WordToken {
-  id               String   @id @default(uuid())
-  sentenceId       String
-  sentence         Sentence @relation(fields: [sentenceId], references: [id], onDelete: Cascade)
-  english          String
-  bangla           String
-  sentenceContext  String
-  pronunciationG   String?  // IPA phonetic guide (e.g. "ˈɛpəl")
-}
-
-model Bookmark {
-  id           String    @id @default(uuid())
-  userId       String
-  user         User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  englishWord  String
-  banglaMeaning String
-  context      String
-  savedAt      DateTime  @default(now())
-
-  @@unique([userId, englishWord])
-}
-
-model UserProgress {
-  id          String   @id @default(uuid())
-  userId      String
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  storyId     String
-  story       Story    @relation(fields: [storyId], references: [id], onDelete: Cascade)
-  completed   Boolean  @default(false)
-  score       Int      @default(0)
-  updatedAt   DateTime @updatedAt
-
-  @@unique([userId, storyId])
-}
-
-model Streak {
-  id             String    @id @default(uuid())
-  userId         String    @unique
-  user           User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  currentStreak  Int       @default(0)
-  longestStreak  Int       @default(0)
-  lastActiveDate DateTime?
-}
-
-model DailyGoal {
-  id           String   @id @default(uuid())
-  userId       String
-  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  date         DateTime @db.Date
-  targetXp     Int      @default(50)
-  earnedXp     Int      @default(0)
-
-  @@unique([userId, date])
-}
-
-model LeaderboardEntry {
-  id           String   @id @default(uuid())
-  userId       String
-  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  league       String
-  weekStarting DateTime @db.Date
-  xpEarned     Int      @default(0)
-
-  @@unique([userId, weekStarting])
-}
-
-model UserItem {
-  id           String   @id @default(uuid())
-  userId       String
-  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  itemType     String   // STREAK_FREEZE, AVATAR_OUTFIT
-  quantity     Int      @default(1)
-  purchasedAt  DateTime @default(now())
-}
-
-model Subscription {
-  id             String             @id @default(uuid())
-  userId         String
-  user           User               @relation(fields: [userId], references: [id], onDelete: Cascade)
-  gateway        PaymentGateway
-  status         SubscriptionStatus @default(PENDING)
-  expiryDate     DateTime
-  subscriptionId String?            @unique // Stripe sub ID or RevenueCat transaction ID
-  createdAt      DateTime           @default(now())
-}
-
-model PaymentTransaction {
-  id            String             @id @default(uuid())
-  userId        String
-  user          User               @relation(fields: [userId], references: [id], onDelete: Cascade)
-  gateway       PaymentGateway
-  transactionId String             @unique
-  amount        Float
-  currency      String             @default("BDT")
-  status        String             // SUCCESS, FAILED, CANCELLED
-  createdAt     DateTime           @default(now())
-}
-
-model Referral {
-  id            String             @id @default(uuid())
-  referrerId    String
-  referrer      User               @relation("Referrer", fields: [referrerId], references: [id])
-  refereeId     String
-  referee       User               @relation("Referee", fields: [refereeId], references: [id])
-  status        String             @default("PENDING") // PENDING, COMPLETED
-  rewardGranted Boolean            @default(false)
-  createdAt     DateTime           @default(now())
-
-  @@unique([referrerId, refereeId])
-}
-
-model B2BOrganization {
-  id            String             @id @default(uuid())
-  name          String
-  type          String             // SCHOOL, TUTORIAL_CENTER, FAMILY
-  licenseCount  Int                @default(1)
-  adminId       String             @unique
-  members       User[]
-  createdAt     DateTime           @default(now())
-}
-```
 
 ---
 
 ## 4. REST API Endpoint Specifications
 
+> All routes are prefixed with `/api`. JWT Bearer token is required on all routes unless marked 🔓.
+
 ### 4.1 Authentication (`/api/auth`)
-*   `POST /register`: Registers user with target Age group & Learning path.
-*   `POST /login/phone`: Initiates OTP verification request.
-*   `POST /login/phone/verify`: Resolves OTP verification, registers JWT.
-*   `POST /login/sso`: Authenticates Google/Apple ID payload.
+| Method | Path | Description |
+|--------|------|-------------|
+| POST 🔓 | `/auth/register` | Register with name, phone, password, learningPath, nctbClass |
+| POST 🔓 | `/auth/login` | Email or phone + password login → JWT |
+| POST 🔓 | `/auth/login/phone` | Send OTP to phone number |
+| POST 🔓 | `/auth/login/phone/verify` | Verify OTP → JWT |
+| GET | `/auth/me` | Get current user profile |
+| PUT | `/auth/me` | Update profile (name, avatar, learningPath) |
 
-### 4.2 Stories & Paths (`/api/stories`)
-*   `GET /paths`: Fetches learning paths and user current roadmap.
-*   `GET /`: Fetches stories for active level and path (Requires auth status check: Free tier allows maximum 40 stories; returns paywall trigger error if limit exceeded).
-*   `GET /:id`: Full JSON payload containing chapters, image cards, sound mapping timestamps.
+### 4.2 Stories (`/api/stories`)
+| Method | Path | Description |
+|--------|------|-------------|
+| GET | `/stories` | Paginated list (filtered by path, level). Enforces free tier 40-story paywall |
+| GET | `/stories/:id` | Full story with sentences, word tokens, audio timestamps |
+| GET | `/stories/:id/quiz` | Generate quiz questions from story sentences |
 
-### 4.3 Vocabulary & Progress (`/api/progress`)
-*   `POST /sync`: Batch synchronizes offline progress.
-*   `POST /bookmarks`: Saves custom vocabulary bookmark.
-*   `DELETE /bookmarks/:word`: Removes bookmark.
+### 4.3 Progress & Practice (`/api/progress`)
+| Method | Path | Description |
+|--------|------|-------------|
+| POST | `/progress/complete` | Mark story complete, award XP |
+| GET | `/progress/bookmarks` | Get all bookmarks with SM-2 due dates |
+| POST | `/progress/bookmarks` | Add a word bookmark (with SM-2 fields) |
+| DELETE | `/progress/bookmarks/:word` | Remove bookmark |
+| POST | `/progress/bookmarks/review` | Submit SM-2 review rating for a flashcard |
+| GET | `/progress/bookmarks/due` | Get bookmarks due for review today |
+| GET | `/progress/learned` | Get all words marked as fully learned |
+| GET | `/progress/mistakes` | Get all user mistake records |
+| PATCH | `/progress/mistakes/:id/corrected` | Mark a mistake as corrected |
+| GET | `/progress/sentence-patterns` | Get spoken English sentence patterns |
 
-### 4.4 Gamification & Leaderboards (`/api/gamification`)
-*   `POST /xp/add`: Increments XP points, recalibrates level progression, League standings, and Daily Goals.
-*   `GET /streak`: Returns active streak counters and calendar history.
-*   `GET /leaderboard`: Returns the top 30 cohort for the user's current League.
+### 4.4 Quiz (`/api/quiz`)
+| Method | Path | Description |
+|--------|------|-------------|
+| POST | `/quiz/submit` | Submit quiz answers; auto-logs incorrect answers to `UserMistake` |
 
-### 4.5 Shop & Virtual Economy (`/api/shop`)
-*   `POST /buy`: Spend Gems to buy Streak Freezes, Extra Lives, or Avatar cosmetics.
-*   `POST /refill-lives`: Triggers an ad-based life refill (requires validation token from AdMob).
+### 4.5 Gamification (`/api/gamification`)
+| Method | Path | Description |
+|--------|------|-------------|
+| POST | `/gamification/xp/add` | Award XP; updates league, level, daily goal |
+| GET | `/gamification/streak` | Current & longest streak, last active date |
+| POST | `/gamification/streak/checkin` | Daily check-in to extend streak |
+| GET | `/gamification/leaderboard` | Top 30 users in current user's league (weekly XP) |
+| GET | `/gamification/daily-goal` | Today's XP target and progress |
+| GET | `/gamification/milestones` | All milestone achievements unlocked by user |
 
-### 4.6 Parental Control & Family/B2B (`/api/accounts`)
-*   `GET /parents/dashboard`: Returns children's progress (XP, completed stories, daily goal status).
-*   `POST /parents/link-child`: Creates a managed sub-account for a kid.
-*   `POST /b2b/provision`: Allows School Admin / Family Head to provision licenses and invite members.
+### 4.6 Shop (`/api/shop`)
+| Method | Path | Description |
+|--------|------|-------------|
+| GET | `/shop/items` | All purchasable shop items |
+| POST | `/shop/buy` | Purchase item with Gems (Streak Freeze, Lives, Avatar) |
+| POST | `/shop/refill-lives` | Refill lives (ad-gated or gem-based) |
 
-### 4.7 Growth & Referrals (`/api/growth`)
-*   `POST /referral/invite`: Generates deep-link tracking URL for user.
-*   `POST /referral/redeem`: Validates a referee signup and grants 7-day Premium status to both users if rules are met.
-*   `POST /events/track`: S2S Endpoint to log A/B testing flag exposures and paywall conversions for CRM triggers.
+### 4.7 Payment (`/api/payment`)
+| Method | Path | Description |
+|--------|------|-------------|
+| POST | `/payment/bkash/create` | Init bKash tokenized checkout session |
+| POST | `/payment/bkash/callback` | bKash S2S callback → execute & confirm payment |
+| POST | `/payment/nagad/create` | Init Nagad checkout with signature |
+| POST | `/payment/nagad/callback` | Nagad callback → verify signature, confirm |
+| POST | `/payment/revenuecat-webhook` | RevenueCat IAP webhook (App Store / Play Store) |
+| GET | `/payment/subscriptions/plans` | List subscription tiers with BDT pricing |
+| GET | `/payment/subscriptions/me` | Current user's active subscription details |
+
+### 4.8 Accounts / Parental Control (`/api/accounts`)
+| Method | Path | Description |
+|--------|------|-------------|
+| GET | `/accounts/children` | List linked child accounts |
+| POST | `/accounts/children` | Link a child account |
+| GET | `/accounts/children/:id/progress` | Child's story progress & XP |
+| GET | `/accounts/invitations` | Pending B2B org invitations |
+| POST | `/accounts/invitations/accept` | Accept a B2B organization invite |
+
+### 4.9 Growth & Referrals (`/api/growth`)
+| Method | Path | Description |
+|--------|------|-------------|
+| POST | `/growth/referral/invite` | Generate personal deep-link referral URL |
+| POST | `/growth/referral/redeem` | Apply a referral code → grant 7-day Premium to both |
+| POST | `/growth/share-card` | Generate shareable score card image URL |
+
+### 4.10 Video Learning (`/api/video`) ✨ NEW
+| Method | Path | Description |
+|--------|------|-------------|
+| GET | `/video` | Paginated list of published video lessons (filter by path, level) |
+| GET | `/video/:id` | Single video lesson details |
+| GET | `/video/my-progress` | Current user's video watch history |
+| POST | `/video/progress` | Track watch progress; awards 15 XP on first completion |
 
 ---
 
