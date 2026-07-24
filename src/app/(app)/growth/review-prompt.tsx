@@ -42,7 +42,11 @@ export default function ReviewPromptScreen() {
     }
 
     setTimeout(() => {
-      router.back();
+      if (router.canGoBack()) {
+        router.back();
+      } else {
+        router.replace("/(tabs)");
+      }
     }, 2000);
   };
 
@@ -52,7 +56,7 @@ export default function ReviewPromptScreen() {
         
         {/* Close Button */}
         <TouchableOpacity 
-          onPress={() => router.back()} 
+          onPress={() => router.canGoBack() ? router.back() : router.replace("/(tabs)")} 
           className="absolute top-4 right-4 p-1"
         >
           <Ionicons name="close" size={20} color="#9CA3AF" />

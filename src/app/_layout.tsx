@@ -45,9 +45,11 @@ function InnerLayout() {
 
   return (
     <ThemeProvider value={colorScheme === "dark" ? DarkTheme : DefaultTheme}>
-      <Slot />
-      <OfflineBanner />
-      <Toast />
+      <ErrorBoundary>
+        <Slot />
+        <OfflineBanner />
+        <Toast />
+      </ErrorBoundary>
     </ThemeProvider>
   );
 }
@@ -55,10 +57,8 @@ function InnerLayout() {
 // ─── Root Layout — all providers ────────────────────────────────────────────
 export default function RootLayout() {
   return (
-    <ErrorBoundary>
-      <ReduxProvider>
-        <InnerLayout />
-      </ReduxProvider>
-    </ErrorBoundary>
+    <ReduxProvider>
+      <InnerLayout />
+    </ReduxProvider>
   );
 }

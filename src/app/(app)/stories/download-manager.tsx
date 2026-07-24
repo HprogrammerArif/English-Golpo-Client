@@ -102,7 +102,7 @@ export default function DownloadManagerScreen() {
     <SafeAreaView style={styles.safe}>
       {/* Header */}
       <View className="bg-white border-b border-gray-100 px-6 py-4 flex-row justify-between items-center shadow-sm">
-        <TouchableOpacity onPress={() => router.back()} className="p-1">
+        <TouchableOpacity onPress={() => router.canGoBack() ? router.back() : router.replace("/(tabs)")} className="p-1">
           <Ionicons name="arrow-back" size={24} color="#374151" />
         </TouchableOpacity>
         <Text className="text-lg font-black text-gray-800">Offline Downloads</Text>

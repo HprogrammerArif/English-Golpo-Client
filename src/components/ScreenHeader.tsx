@@ -25,8 +25,10 @@ export function ScreenHeader({
   const handleBack = () => {
     if (onBackPress) {
       onBackPress();
-    } else {
+    } else if (router.canGoBack()) {
       router.back();
+    } else {
+      router.replace("/");
     }
   };
 

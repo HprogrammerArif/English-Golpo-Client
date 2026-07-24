@@ -80,7 +80,7 @@ export default function ForgotPasswordScreen() {
           showsVerticalScrollIndicator={false}
         >
           {/* Back */}
-          <TouchableOpacity style={styles.backBtn} onPress={() => router.back()}>
+          <TouchableOpacity style={styles.backBtn} onPress={() => router.canGoBack() ? router.back() : router.replace("/(auth)/login")}>
             <Ionicons name="chevron-back" size={22} color="#111827" />
           </TouchableOpacity>
 

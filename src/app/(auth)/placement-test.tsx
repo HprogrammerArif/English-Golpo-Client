@@ -136,7 +136,7 @@ export default function PlacementTestScreen() {
       {/* Progress Bar */}
       <View>
         <View className="flex-row justify-between items-center mb-3">
-          <TouchableOpacity onPress={() => router.back()} className="p-1">
+          <TouchableOpacity onPress={() => router.canGoBack() ? router.back() : router.replace("/(auth)/login")} className="p-1">
             <Ionicons name="arrow-back" size={24} color="#4B5563" />
           </TouchableOpacity>
           <Text className="text-sm font-bold text-gray-500">

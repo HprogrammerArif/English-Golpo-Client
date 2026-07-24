@@ -1,6 +1,11 @@
 import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, ActivityIndicator } from 'react-native';
-import { Audio } from 'expo-av';
+import {
+  useAudioRecorder,
+  RecordingPresets,
+  setAudioModeAsync,
+  requestRecordingPermissionsAsync,
+} from 'expo-audio';
 import * as FileSystem from 'expo-file-system';
 import { useAppSelector } from '@/redux/hooks';
 import { selectCurrentToken } from '@/redux/features/auth/authSlice';
@@ -14,54 +19,47 @@ interface PronunciationGuideProps {
 
 export const PronunciationGuide: React.FC<PronunciationGuideProps> = ({ phrase, onAssessmentResult }) => {
   const token = useAppSelector(selectCurrentToken);
-  const [recording, setRecording] = useState<Audio.Recording | null>(null);
+  const recorder = useAudioRecorder(RecordingPresets.HIGH_QUALITY);
   const [isRecording, setIsRecording] = useState(false);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
 
   const startRecording = async () => {
     try {
-      await Audio.requestPermissionsAsync();
-      await Audio.setAudioModeAsync({
-        allowsRecordingIOS: true,
-        playsInSilentModeIOS: true,
-      });
-
-      const { recording } = await Audio.Recording.createAsync(
-        Audio.RecordingOptionsPresets.HIGH_QUALITY
-      );
-      setRecording(recording);
+      const { granted } = await requestRecordingPermissionsAsync();
+      if (!granted) {
+        Toast.show({ type: 'error', text1: 'Mic permission denied or audio configuration failed.' });
+        return;
+      }
+      await setAudioModeAsync({ allowsRecordingIOS: true, playsInSilentModeIOS: true });
+      await recorder.prepareToRecordAsync();
+      recorder.record();
       setIsRecording(true);
     } catch (err) {
       console.error('Failed to start recording', err);
-      Toast.show({
-        type: 'error',
-        text1: 'Mic permission denied or audio configuration failed.',
-      });
+      Toast.show({ type: 'error', text1: 'Mic permission denied or audio configuration failed.' });
     }
   };
 
   const stopRecording = async () => {
-    if (!recording) return;
+    if (!isRecording) return;
     setIsRecording(false);
     setIsAnalyzing(true);
     try {
-      await recording.stopAndUnloadAsync();
-      const uri = recording.getURI();
+      await recorder.stop();
+      const uri = recorder.uri;
       if (uri) {
         await uploadAudio(uri);
       }
     } catch (err) {
       console.error('Failed to stop recording', err);
       setIsAnalyzing(false);
-    } finally {
-      setRecording(null);
     }
   };
 
   const uploadAudio = async (localUri: string) => {
     try {
       const uploadUrl = `${process.env.EXPO_PUBLIC_API_URL || 'http://localhost:3000'}/api/pronunciation/evaluate`;
-      
+
       const response = await FileSystem.uploadAsync(uploadUrl, localUri, {
         fieldName: 'audio',
         httpMethod: 'POST',

@@ -51,7 +51,7 @@ export default function StoryDetailScreen() {
     <SafeAreaView style={styles.safe}>
       {/* Header bar */}
       <View className="bg-white border-b border-gray-100 px-4 py-3 flex-row items-center justify-between">
-        <TouchableOpacity onPress={() => router.back()} className="p-2">
+        <TouchableOpacity onPress={() => router.canGoBack() ? router.back() : router.replace("/(tabs)")} className="p-2">
           <Ionicons name="arrow-back" size={24} color="#374151" />
         </TouchableOpacity>
         <Text numberOfLines={1} className="text-base font-extrabold text-gray-800 flex-1 mx-3 text-center">

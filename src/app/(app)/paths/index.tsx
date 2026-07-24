@@ -34,7 +34,11 @@ export default function PathSelectionScreen() {
         text1: "Learning Path Updated! 🎯",
         text2: `You are now on the ${selectedPath} learning track.`,
       });
-      router.back();
+      if (router.canGoBack()) {
+        router.back();
+      } else {
+        router.replace("/(tabs)");
+      }
     } catch (err: any) {
       console.error("Failed to update path:", err);
       Toast.show({
@@ -49,7 +53,7 @@ export default function PathSelectionScreen() {
     <SafeAreaView style={styles.safe}>
       {/* Header */}
       <View className="bg-white border-b border-gray-100 px-6 py-4 flex-row justify-between items-center shadow-sm">
-        <TouchableOpacity onPress={() => router.back()} className="p-1">
+        <TouchableOpacity onPress={() => router.canGoBack() ? router.back() : router.replace("/(tabs)")} className="p-1">
           <Ionicons name="arrow-back" size={24} color="#374151" />
         </TouchableOpacity>
         <Text className="text-lg font-black text-gray-800">Select Learning Path</Text>

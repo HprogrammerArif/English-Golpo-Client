@@ -1,11 +1,11 @@
 // services/offlineStorage.ts
 import { Story } from '@/redux/api/storyApi';
 
-let FileSystem: typeof import('expo-file-system') | null = null;
+let FileSystem: any = null;
 try {
-  FileSystem = require('expo-file-system');
+  FileSystem = require('expo-file-system/legacy');
 } catch {
-  console.warn('[offlineStorage] expo-file-system is not available in current environment.');
+  console.warn('[offlineStorage] expo-file-system/legacy is not available in current environment.');
 }
 
 // Keep track of downloaded stories locally in SQLite or MMKV (mock state for now)

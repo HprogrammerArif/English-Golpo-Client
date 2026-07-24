@@ -145,7 +145,9 @@ async function registerForPushNotificationsAsync(): Promise<string | null> {
       process.env.EXPO_PUBLIC_PROJECT_ID;
 
     if (!projectId) {
-      console.warn("[Notifications] EXPO_PUBLIC_PROJECT_ID is not set. Cannot register push token.");
+      if (__DEV__) {
+        console.log("[Notifications] EXPO_PUBLIC_PROJECT_ID is not set in .env. Skipping push token registration.");
+      }
       return null;
     }
 

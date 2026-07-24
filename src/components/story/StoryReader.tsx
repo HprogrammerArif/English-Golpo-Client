@@ -1,119 +1,75 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
+import { useAudioPlayer, useAudioPlayerStatus } from 'expo-audio';
 import { useAppDispatch } from '@/redux/hooks';
 import { addBookmark } from '@/redux/features/progress/progressSlice';
 import { useAddBookmarkMutation } from '@/redux/api/progressApi';
 import { Story, WordToken } from '@/redux/api/storyApi';
 import Toast from 'react-native-toast-message';
 
-// expo-av requires the ExponentAV native module, which is unavailable in Expo Go.
-// We load it lazily and fall back to a no-op when the module is missing.
-let AudioModule: typeof import('expo-av').Audio | null = null;
-try {
-  // eslint-disable-next-line @typescript-eslint/no-var-requires
-  AudioModule = require('expo-av').Audio;
-} catch {
-  console.warn('[StoryReader] expo-av native module not available (Expo Go). Audio playback disabled.');
-}
-
 interface StoryReaderProps {
   story: Story;
   onFinish: () => void;
 }
 
-export  const StoryReader: React.FC<StoryReaderProps> = ({ story, onFinish }) => {
+export const StoryReader: React.FC<StoryReaderProps> = ({ story, onFinish }) => {
   const dispatch = useAppDispatch();
   const [addBookmarkApi] = useAddBookmarkMutation();
 
-  const [sound, setSound] = useState<import('expo-av').Audio.Sound | null>(null);
-  const [isPlaying, setIsPlaying] = useState(false);
-  const [playbackSec, setPlaybackSec] = useState(0);
-  const [activeSentenceIdx, setActiveSentenceIdx] = useState<number>(-1);
   const [selectedWord, setSelectedWord] = useState<WordToken | null>(null);
   const [currentPageIdx, setCurrentPageIdx] = useState(0);
-  const [isAudioLoading, setIsAudioLoading] = useState(false);
-  const [audioUnavailable, setAudioUnavailable] = useState(!AudioModule);
+  const [activeSentenceIdx, setActiveSentenceIdx] = useState<number>(-1);
 
-  const currentPage = story.pages.find(p => p.pageIndex === currentPageIdx) || story.pages[0];
+  // expo-audio: hook-based player. null source = no audio available.
+  const player = useAudioPlayer(story.audioUrl ? { uri: story.audioUrl } : null);
+  const status = useAudioPlayerStatus(player);
 
-  // Load sound when story page changes or audio url updates
+  // status.playing   → boolean
+  // status.currentTime → seconds (number)
+  // status.isLoaded  → boolean (player ready)
+
+  const audioUnavailable = !story.audioUrl;
+  const isAudioLoading = story.audioUrl != null && !status.isLoaded;
+  const isPlaying = status.playing ?? false;
+  // currentTime in seconds — matches sentence startTime/endTime directly
+  const playbackSec = status.currentTime ?? 0;
+
+  // Seek to start of page when page changes
   useEffect(() => {
-    // Skip audio loading if native module is unavailable (e.g. Expo Go)
-    if (!AudioModule) return;
+    if (status.isLoaded) {
+      player.seekTo(0);
+    }
+    setActiveSentenceIdx(-1);
+  }, [currentPageIdx]);
 
-    let isMounted = true;
-    const loadAudio = async () => {
-      if (sound) {
-        await sound.unloadAsync();
-      }
-      if (!story.audioUrl) return;
+  // Highlight active sentence based on playback position
+  const pages = story.pages || [];
+  const currentPage = pages.find(p => p.pageIndex === currentPageIdx) || pages[0];
 
-      setIsAudioLoading(true);
-      try {
-        const { sound: newSound } = await AudioModule!.Sound.createAsync(
-          { uri: story.audioUrl },
-          { shouldPlay: false },
-          (status: any) => {
-            if (status.isLoaded) {
-              setPlaybackSec(status.positionMillis / 1000);
-              setIsPlaying(status.isPlaying);
-            }
-          }
-        );
-        if (isMounted) {
-          setSound(newSound);
-        }
-      } catch (err) {
-        console.error('Error loading audio:', err);
-      } finally {
-        if (isMounted) setIsAudioLoading(false);
-      }
-    };
-
-    loadAudio();
-
-    return () => {
-      isMounted = false;
-      if (sound) {
-        sound.unloadAsync();
-      }
-    };
-  }, [story.audioUrl, currentPageIdx]);
-
-  // Determine active highlighted sentence based on playback progress
   useEffect(() => {
-    if (!currentPage) return;
+    if (!currentPage?.sentences) return;
     const activeIdx = currentPage.sentences.findIndex(
-      (s) => playbackSec >= s.startTime && playbackSec <= s.endTime
+      s => playbackSec >= s.startTime && playbackSec <= s.endTime
     );
     setActiveSentenceIdx(activeIdx);
   }, [playbackSec, currentPage]);
 
-  const handlePlayPause = async () => {
-    if (!sound) return;
+  const handlePlayPause = () => {
     if (isPlaying) {
-      await sound.pauseAsync();
+      player.pause();
     } else {
-      await sound.playAsync();
+      player.play();
     }
   };
 
-  const handleSkipForward = async () => {
-    if (!sound) return;
-    const status = await sound.getStatusAsync();
-    if (status.isLoaded) {
-      await sound.setPositionAsync(Math.min(status.durationMillis || 0, status.positionMillis + 10000));
-    }
+  const handleSkipForward = () => {
+    player.seekTo(Math.min(status.duration ?? 0, playbackSec + 10));
   };
 
-  const handleSkipBackward = async () => {
-    if (!sound) return;
-    const status = await sound.getStatusAsync();
-    if (status.isLoaded) {
-      await sound.setPositionAsync(Math.max(0, status.positionMillis - 10000));
-    }
+  const handleSkipBackward = () => {
+    player.seekTo(Math.max(0, playbackSec - 10));
   };
 
   const handleWordTap = (word: WordToken) => {
@@ -123,7 +79,6 @@ export  const StoryReader: React.FC<StoryReaderProps> = ({ story, onFinish }) =>
   const handleBookmarkSave = async () => {
     if (!selectedWord) return;
 
-    // Format local state bookmark
     const localBookmark = {
       id: Math.random().toString(),
       word: selectedWord.english,
@@ -133,10 +88,8 @@ export  const StoryReader: React.FC<StoryReaderProps> = ({ story, onFinish }) =>
       savedAt: new Date().toISOString(),
     };
 
-    // Save locally
     dispatch(addBookmark(localBookmark));
 
-    // Save to backend via API
     try {
       await addBookmarkApi({
         englishWord: selectedWord.english,
@@ -144,10 +97,7 @@ export  const StoryReader: React.FC<StoryReaderProps> = ({ story, onFinish }) =>
         context: selectedWord.sentenceContext,
         wordTokenId: selectedWord.id,
       }).unwrap();
-      Toast.show({
-        type: 'success',
-        text1: 'Word bookmarked successfully! 🔖',
-      });
+      Toast.show({ type: 'success', text1: 'Word bookmarked successfully! 🔖' });
     } catch (err) {
       console.error('Error saving bookmark to server:', err);
     } finally {
@@ -156,33 +106,30 @@ export  const StoryReader: React.FC<StoryReaderProps> = ({ story, onFinish }) =>
   };
 
   const handleNextPage = () => {
-    if (currentPageIdx < story.pages.length - 1) {
+    if (currentPageIdx < pages.length - 1) {
+      player.pause();
       setCurrentPageIdx(currentPageIdx + 1);
-      setActiveSentenceIdx(-1);
-      setPlaybackSec(0);
     } else {
-      // Finished all pages, trigger quiz
-      if (sound) {
-        sound.stopAsync();
-      }
+      player.pause();
       onFinish();
     }
   };
 
   const handlePrevPage = () => {
     if (currentPageIdx > 0) {
+      player.pause();
       setCurrentPageIdx(currentPageIdx - 1);
-      setActiveSentenceIdx(-1);
-      setPlaybackSec(0);
     }
   };
+
+  const sentences = currentPage?.sentences || [];
 
   return (
     <View className="flex-1 bg-gray-50">
       <ScrollView className="flex-1" contentContainerStyle={{ paddingBottom: 160 }}>
         {/* Cover Image */}
         <Image
-          source={{ uri: currentPage.imageUrl || story.illustrationUrl }}
+          source={{ uri: currentPage?.imageUrl || story.illustrationUrl }}
           className="w-full h-56 rounded-b-3xl bg-emerald-100"
           contentFit="cover"
           transition={300}
@@ -191,7 +138,7 @@ export  const StoryReader: React.FC<StoryReaderProps> = ({ story, onFinish }) =>
         {/* Page metadata indicator */}
         <View className="flex-row justify-between items-center px-6 py-4">
           <Text className="text-sm font-semibold text-emerald-600 tracking-wider">
-            PAGE {currentPageIdx + 1} OF {story.pages.length}
+            PAGE {pages.length > 0 ? currentPageIdx + 1 : 0} OF {pages.length}
           </Text>
           <Text className="text-xs text-gray-400 font-semibold uppercase">
             {story.learningPath} • LEVEL {story.level}
@@ -199,41 +146,53 @@ export  const StoryReader: React.FC<StoryReaderProps> = ({ story, onFinish }) =>
         </View>
 
         {/* Story Sentences */}
-        <View className="px-5 space-y-4">
-          {currentPage.sentences.map((sentence, sIdx) => {
-            const isHighlighted = activeSentenceIdx === sIdx;
-            return (
-              <View
-                key={sentence.id}
-                className={`p-4 rounded-2xl border transition-all ${
-                  isHighlighted
-                    ? 'bg-emerald-50/80 border-emerald-300 shadow-sm'
-                    : 'bg-white border-gray-100'
-                }`}
-              >
-                {/* English Tappable word tokens */}
-                <View className="flex-row flex-wrap items-center">
-                  {sentence.tokens.map((token) => (
-                    <TouchableOpacity
-                      key={token.id}
-                      onPress={() => handleWordTap(token)}
-                      activeOpacity={0.7}
-                      className="mr-1.5 my-0.5 px-1 py-0.5 rounded bg-gray-100/50 active:bg-emerald-100"
-                    >
-                      <Text className="text-[17px] font-medium text-gray-800 underline decoration-emerald-400/40">
-                        {token.english}
-                      </Text>
-                    </TouchableOpacity>
-                  ))}
-                </View>
+        <View className="px-5 gap-y-4">
+          {sentences.length === 0 ? (
+            <View className="p-8 items-center justify-center">
+              <Text className="text-gray-400 font-medium text-center">No content sentences found for this page.</Text>
+            </View>
+          ) : (
+            sentences.map((sentence, sIdx) => {
+              const isHighlighted = activeSentenceIdx === sIdx;
+              const tokens = sentence.tokens || [];
+              return (
+                <View
+                  key={sentence.id || sIdx}
+                  className="p-4 rounded-2xl border"
+                  style={{
+                    backgroundColor: isHighlighted ? '#ecfdf5' : '#ffffff',
+                    borderColor: isHighlighted ? '#a7f3d0' : '#f3f4f6',
+                    shadowColor: isHighlighted ? '#000000' : 'transparent',
+                    shadowOffset: { width: 0, height: 1 },
+                    shadowOpacity: isHighlighted ? 0.05 : 0,
+                    shadowRadius: 2,
+                    elevation: isHighlighted ? 1 : 0,
+                  }}
+                >
+                  {/* English Tappable word tokens */}
+                  <View className="flex-row flex-wrap items-center">
+                    {tokens.map((token, tIdx) => (
+                      <TouchableOpacity
+                        key={token.id || tIdx}
+                        onPress={() => handleWordTap(token)}
+                        activeOpacity={0.7}
+                        className="mr-1.5 my-0.5 px-1 py-0.5 rounded bg-gray-100/50 active:bg-emerald-100"
+                      >
+                        <Text className="text-[17px] font-medium text-gray-800 underline">
+                          {token.english}
+                        </Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
 
-                {/* Bangla Translation */}
-                <Text className="text-[14px] text-gray-500 font-medium mt-2 leading-relaxed">
-                  {sentence.banglaText}
-                </Text>
-              </View>
-            );
-          })}
+                  {/* Bangla Translation */}
+                  <Text className="text-[14px] text-gray-500 font-medium mt-2 leading-relaxed">
+                    {sentence.banglaText}
+                  </Text>
+                </View>
+              );
+            })
+          )}
         </View>
       </ScrollView>
 
@@ -247,7 +206,7 @@ export  const StoryReader: React.FC<StoryReaderProps> = ({ story, onFinish }) =>
             </View>
             <TouchableOpacity
               onPress={handleBookmarkSave}
-              className="bg-emerald-500 px-4 py-2 rounded-full flex-row items-center space-x-1.5"
+              className="bg-emerald-500 px-4 py-2 rounded-full flex-row items-center gap-x-1.5"
             >
               <Ionicons name="bookmark-outline" size={16} color="white" />
               <Text className="text-white text-xs font-bold">Bookmark</Text>
@@ -260,7 +219,7 @@ export  const StoryReader: React.FC<StoryReaderProps> = ({ story, onFinish }) =>
           </View>
 
           {selectedWord.pronunciationG && (
-            <View className="mt-2.5 flex-row items-center space-x-1">
+            <View className="mt-2.5 flex-row items-center gap-x-1">
               <Text className="text-xs text-gray-400 font-bold uppercase tracking-wide">IPA Guide:</Text>
               <Text className="text-sm font-semibold text-emerald-600">/{selectedWord.pronunciationG}/</Text>
             </View>
@@ -291,7 +250,7 @@ export  const StoryReader: React.FC<StoryReaderProps> = ({ story, onFinish }) =>
         </TouchableOpacity>
 
         {/* Audio controls */}
-        <View className="flex-row items-center space-x-5">
+        <View className="flex-row items-center gap-x-5">
           <TouchableOpacity onPress={handleSkipBackward} disabled={audioUnavailable} className="p-2">
             <Ionicons name="play-back" size={24} color={audioUnavailable ? '#D1D5DB' : '#6B7280'} />
           </TouchableOpacity>
@@ -326,7 +285,7 @@ export  const StoryReader: React.FC<StoryReaderProps> = ({ story, onFinish }) =>
         {/* Page progress navigation */}
         <TouchableOpacity
           onPress={handleNextPage}
-          className="bg-emerald-500 px-5 py-3 rounded-full flex-row items-center space-x-1 shadow"
+          className="bg-emerald-500 px-5 py-3 rounded-full flex-row items-center gap-x-1 shadow"
         >
           <Text className="text-white font-bold text-sm">
             {currentPageIdx === story.pages.length - 1 ? 'Start Quiz' : 'Next Page'}

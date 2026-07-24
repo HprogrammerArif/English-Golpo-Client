@@ -1,11 +1,11 @@
 {
   "expo": {
-    "name": "reactnativestarter",
-    "slug": "reactnativestarter",
+    "name": "English Golpo",
+    "slug": "english-golpo",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "reactnativestarter",
+    "scheme": "english-golpo",
     "userInterfaceStyle": "automatic",
     "ios": {
       "icon": "./assets/expo.icon"
@@ -18,7 +18,7 @@
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
       "predictiveBackGestureEnabled": false,
-      "package": "com.rakibhasan2.reactnativestarter"
+      "package": "com.learn.englishgolpo"
     },
     "web": {
       "bundler": "metro",
@@ -46,7 +46,20 @@
           "defaultChannel": "default"
         }
       ],
-      "@sentry/react-native"
+      "@sentry/react-native",
+      "expo-web-browser",
+      "expo-font",
+      "expo-image",
+      "expo-status-bar",
+      [
+        "expo-build-properties",
+        {
+          "android": {}
+        }
+      ],
+      "./plugins/withKotlinReflect",
+      "expo-audio",
+      "expo-asset"
     ],
     "experiments": {
       "typedRoutes": true,

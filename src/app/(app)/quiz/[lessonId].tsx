@@ -78,7 +78,7 @@ export default function QuizScreen() {
           There are no questions seeded for this story yet.
         </Text>
         <TouchableOpacity
-          onPress={() => router.back()}
+          onPress={() => router.canGoBack() ? router.back() : router.replace("/(tabs)")}
           className="bg-emerald-500 px-6 py-3 rounded-full"
         >
           <Text className="text-white font-bold">Go Back</Text>
@@ -168,7 +168,7 @@ export default function QuizScreen() {
     <SafeAreaView style={styles.safe} className="flex-1">
       {/* Header with Exit option */}
       <View className="px-6 py-4 flex-row justify-between items-center bg-white border-b border-gray-100 shadow-sm">
-        <TouchableOpacity onPress={() => router.back()} className="p-1">
+        <TouchableOpacity onPress={() => router.canGoBack() ? router.back() : router.replace("/(tabs)")} className="p-1">
           <Ionicons name="close" size={24} color="#374151" />
         </TouchableOpacity>
         <View className="flex-1 px-4">
@@ -199,7 +199,7 @@ export default function QuizScreen() {
         <Text className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3 ml-2">
           Select the correct option:
         </Text>
-        <View className="space-y-3.5 mb-8">
+        <View className="gap-y-3.5 mb-8">
           {currentQuestion.options.map((option, idx) => {
             const isSelected = currentSelected === idx;
             const letter = String.fromCharCode(65 + idx); // A, B, C...
