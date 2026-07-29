@@ -33,10 +33,10 @@ export const growthApi = baseApi.injectEndpoints({
       }),
     }),
     trackGrowthEvent: builder.mutation<{ success: boolean }, { eventName: string; metadata?: any }>({
-      query: (body) => ({
+      query: ({ eventName, metadata }) => ({
         url: "/growth/events/track",
         method: "POST",
-        body,
+        body: { event: eventName, properties: metadata },
       }),
     }),
   }),

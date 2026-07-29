@@ -154,7 +154,7 @@ export default function QuizScreen() {
           </ScrollView>
 
           <TouchableOpacity
-            onPress={() => router.replace("/(app)/(tabs)")}
+            onPress={() => router.replace("/(tabs)")}
             className="bg-emerald-500 w-full py-3.5 rounded-2xl items-center justify-center mt-6 shadow"
           >
             <Text className="text-white font-extrabold text-base">Back to Home</Text>

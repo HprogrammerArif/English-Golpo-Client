@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
@@ -21,6 +21,9 @@ export const StoryReader: React.FC<StoryReaderProps> = ({ story, onFinish }) => 
   const [selectedWord, setSelectedWord] = useState<WordToken | null>(null);
   const [currentPageIdx, setCurrentPageIdx] = useState(0);
   const [activeSentenceIdx, setActiveSentenceIdx] = useState<number>(-1);
+  // Track if audio failed to load (e.g. dead URL) so we can fall back gracefully
+  const [audioLoadFailed, setAudioLoadFailed] = useState(false);
+  const audioTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // expo-audio: hook-based player. null source = no audio available.
   const player = useAudioPlayer(story.audioUrl ? { uri: story.audioUrl } : null);
@@ -30,11 +33,35 @@ export const StoryReader: React.FC<StoryReaderProps> = ({ story, onFinish }) => 
   // status.currentTime → seconds (number)
   // status.isLoaded  → boolean (player ready)
 
-  const audioUnavailable = !story.audioUrl;
-  const isAudioLoading = story.audioUrl != null && !status.isLoaded;
+  const audioUnavailable = !story.audioUrl || audioLoadFailed;
+  // Only show loading spinner if audio URL is present, not already failed, and not yet loaded
+  const isAudioLoading = story.audioUrl != null && !audioLoadFailed && !status.isLoaded;
   const isPlaying = status.playing ?? false;
   // currentTime in seconds — matches sentence startTime/endTime directly
   const playbackSec = status.currentTime ?? 0;
+
+  // Start a 6-second timeout when we have an audioUrl — if still not loaded, mark as failed
+  useEffect(() => {
+    if (!story.audioUrl) return;
+    if (status.isLoaded) {
+      // Audio loaded successfully, clear the timeout
+      if (audioTimeoutRef.current) clearTimeout(audioTimeoutRef.current);
+      setAudioLoadFailed(false);
+      return;
+    }
+    // Not yet loaded — start a timeout if one isn't running
+    if (!audioTimeoutRef.current) {
+      audioTimeoutRef.current = setTimeout(() => {
+        if (!status.isLoaded) {
+          setAudioLoadFailed(true);
+        }
+        audioTimeoutRef.current = null;
+      }, 20000); // Increased timeout to 20 seconds for larger files
+    }
+    return () => {
+      if (audioTimeoutRef.current) clearTimeout(audioTimeoutRef.current);
+    };
+  }, [story.audioUrl, status.isLoaded]);
 
   // Seek to start of page when page changes
   useEffect(() => {
@@ -44,9 +71,10 @@ export const StoryReader: React.FC<StoryReaderProps> = ({ story, onFinish }) => 
     setActiveSentenceIdx(-1);
   }, [currentPageIdx]);
 
-  // Highlight active sentence based on playback position
+  // Use array index directly — more reliable than matching pageIndex DB field
   const pages = story.pages || [];
-  const currentPage = pages.find(p => p.pageIndex === currentPageIdx) || pages[0];
+  // currentPage: use array index; fall back to first page if out of range
+  const currentPage = pages[currentPageIdx] ?? pages[0];
 
   useEffect(() => {
     if (!currentPage?.sentences) return;
@@ -130,7 +158,7 @@ export const StoryReader: React.FC<StoryReaderProps> = ({ story, onFinish }) => 
         {/* Cover Image */}
         <Image
           source={{ uri: currentPage?.imageUrl || story.illustrationUrl }}
-          className="w-full h-56 rounded-b-3xl bg-emerald-100"
+          style={{ width: '100%', height: 224, borderBottomLeftRadius: 24, borderBottomRightRadius: 24, backgroundColor: '#d1fae5' }}
           contentFit="cover"
           transition={300}
         />
@@ -169,26 +197,50 @@ export const StoryReader: React.FC<StoryReaderProps> = ({ story, onFinish }) => 
                     elevation: isHighlighted ? 1 : 0,
                   }}
                 >
-                  {/* English Tappable word tokens */}
-                  <View className="flex-row flex-wrap items-center">
-                    {tokens.map((token, tIdx) => (
-                      <TouchableOpacity
-                        key={token.id || tIdx}
-                        onPress={() => handleWordTap(token)}
-                        activeOpacity={0.7}
-                        className="mr-1.5 my-0.5 px-1 py-0.5 rounded bg-gray-100/50 active:bg-emerald-100"
-                      >
-                        <Text className="text-[17px] font-medium text-gray-800 underline">
-                          {token.english}
-                        </Text>
-                      </TouchableOpacity>
-                    ))}
+                  {/* Bangla Text */}
+                  <View className="flex-row items-start gap-x-2">
+                    <View className="bg-gray-100 px-1.5 py-0.5 rounded mt-0.5">
+                      <Text className="text-[10px] font-bold text-gray-500">S{sIdx + 1}</Text>
+                    </View>
+                    <Text className="flex-1 text-[16px] font-extrabold text-gray-800 leading-snug">
+                      {sentence.banglaText}
+                    </Text>
                   </View>
 
-                  {/* Bangla Translation */}
-                  <Text className="text-[14px] text-gray-500 font-medium mt-2 leading-relaxed">
-                    {sentence.banglaText}
+                  {/* English Text */}
+                  <Text className="text-[14px] text-emerald-600 font-bold mt-1.5 pl-6 leading-relaxed">
+                    {sentence.englishText}
                   </Text>
+
+                  {/* Vocabulary Pills */}
+                  {tokens.length > 0 && (
+                    <View className="mt-3 pt-2.5 border-t border-gray-100 flex-row flex-wrap items-center pl-6">
+                      <Text className="text-[10px] font-extrabold text-gray-400 uppercase tracking-wider mr-2">
+                        Vocabulary:
+                      </Text>
+                      {tokens.map((token, tIdx) => (
+                        <TouchableOpacity
+                          key={token.id || tIdx}
+                          onPress={() => handleWordTap(token)}
+                          activeOpacity={0.7}
+                          className="mr-2 my-1 px-2.5 py-1.5 rounded-xl bg-indigo-50 border border-indigo-100 active:bg-indigo-100 flex-row items-center gap-x-1"
+                        >
+                          <Text className="text-[12px] font-extrabold text-indigo-700 underline">
+                            {token.english}
+                          </Text>
+                          <Text className="text-[10px] text-indigo-400">→</Text>
+                          <Text className="text-[12px] font-bold text-indigo-600">
+                            {token.bangla}
+                          </Text>
+                          {token.pronunciationG && (
+                            <Text className="text-[10px] font-bold text-indigo-400/80 bg-white px-1 rounded">
+                              /{token.pronunciationG}/
+                            </Text>
+                          )}
+                        </TouchableOpacity>
+                      ))}
+                    </View>
+                  )}
                 </View>
               );
             })
@@ -288,10 +340,10 @@ export const StoryReader: React.FC<StoryReaderProps> = ({ story, onFinish }) => 
           className="bg-emerald-500 px-5 py-3 rounded-full flex-row items-center gap-x-1 shadow"
         >
           <Text className="text-white font-bold text-sm">
-            {currentPageIdx === story.pages.length - 1 ? 'Start Quiz' : 'Next Page'}
+            {currentPageIdx >= pages.length - 1 ? 'Start Quiz' : 'Next Page'}
           </Text>
           <Ionicons
-            name={currentPageIdx === story.pages.length - 1 ? 'checkbox' : 'arrow-forward'}
+            name={currentPageIdx >= pages.length - 1 ? 'checkbox' : 'arrow-forward'}
             size={16}
             color="white"
           />

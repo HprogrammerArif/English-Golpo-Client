@@ -45,7 +45,7 @@ export const accountsApi = baseApi.injectEndpoints({
         body,
       }),
     }),
-    provisionB2B: builder.mutation<B2BDashboardResponse, { name: string; type: "SCHOOL" | "COACHING_CENTER" | "MADRASA" | "FAMILY" | "CORPORATE"; licenseCount?: number }>({
+    provisionB2B: builder.mutation<B2BDashboardResponse, { organizationName: string; type: "SCHOOL" | "COACHING_CENTER" | "MADRASA" | "FAMILY" | "CORPORATE"; licenseCount?: number; contactPhone?: string }>({
       query: (body) => ({
         url: "/accounts/b2b/provision",
         method: "POST",

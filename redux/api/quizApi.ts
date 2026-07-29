@@ -35,6 +35,15 @@ export const quizApi = baseApi.injectEndpoints({
         method: "POST",
         body: { answers },
       }),
+      // Backend returns: { score, xpEarned, correctCount, totalQuestions, results: [{ correctIndex }] }
+      // Client expects:  { score, xpEarned, correctCount, totalQuestions, correctAnswers: number[] }
+      transformResponse: (response: any): SubmitQuizResponse => ({
+        score: response.score,
+        xpEarned: response.xpEarned,
+        correctCount: response.correctCount,
+        totalQuestions: response.totalQuestions,
+        correctAnswers: (response.results ?? []).map((r: any) => r.correctIndex),
+      }),
       invalidatesTags: (result, error, { storyId }) => [
         { type: "Quiz", id: storyId },
         "User",
