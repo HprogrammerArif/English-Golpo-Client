@@ -6,7 +6,7 @@ export interface VideoLesson {
   titleBn: string;
   description: string;
   descriptionBn: string;
-  youtubeId: string;
+  youtubeId?: string; // Optional since MP4 url could be set instead
   thumbnailUrl: string;
   durationSeconds: number;
   learningPath: string;
@@ -15,6 +15,13 @@ export interface VideoLesson {
   tags: string[];
   isPremium: boolean;
   isPublished: boolean;
+  videoType?: string; // YOUTUBE | ILLUSTRATION | PARENT | PUBLIC
+  videoUrl?: string;
+  contributorId?: string;
+  targetChildId?: string;
+  approved?: boolean;
+  payoutAmount?: number;
+  payoutStatus?: string;
   createdAt: string;
 }
 
@@ -34,6 +41,7 @@ export interface GetVideosParams {
   level?: number;
   page?: number;
   limit?: number;
+  type?: string;
 }
 
 export interface TrackProgressPayload {

@@ -1,9 +1,8 @@
 /**
  * Video Learning Tab — English Golpo
  *
- * A kid-friendly, YouTube-embedded video learning screen.
- * Videos are curated for each learning path (KIDS, SPOKEN, IELTS, etc.)
- * and award XP on completion.
+ * A kid-friendly video learning screen supporting YouTube embeds and raw video playback.
+ * Curated categories allow children to filter by YouTube lessons, animations, parent greetings, or public videos.
  */
 import { useState, useCallback } from "react";
 import {
@@ -52,12 +51,16 @@ function VideoCard({ video, isCompleted, onPress }: VideoCardProps) {
   const levelColors = ["#10B981", "#F59E0B", "#EF4444", "#8B5CF6"];
   const levelColor = levelColors[(video.level - 1) % levelColors.length] || "#10B981";
 
+  // If it's not a youtube video, try to fallback to default thumb
+  const defaultThumb = "https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?w=600";
+  const thumbUrl = video.thumbnailUrl || (video.youtubeId ? `https://img.youtube.com/vi/${video.youtubeId}/hqdefault.jpg` : defaultThumb);
+
   return (
     <TouchableOpacity style={styles.card} onPress={onPress} activeOpacity={0.88}>
       {/* Thumbnail */}
       <View style={styles.thumbWrap}>
         <Image
-          source={{ uri: video.thumbnailUrl || `https://img.youtube.com/vi/${video.youtubeId}/hqdefault.jpg` }}
+          source={{ uri: thumbUrl }}
           style={styles.thumb}
           resizeMode="cover"
         />
@@ -102,6 +105,11 @@ function VideoCard({ video, isCompleted, onPress }: VideoCardProps) {
           <View style={[styles.levelDot, { backgroundColor: levelColor + "22" }]}>
             <Text style={[styles.levelDotText, { color: levelColor }]}>Lv.{video.level}</Text>
           </View>
+          {video.videoType && video.videoType !== "YOUTUBE" && (
+            <View style={[styles.typePill, { backgroundColor: "#EEF2F6" }]}>
+              <Text style={styles.typePillText}>{video.videoType}</Text>
+            </View>
+          )}
         </View>
         <Text style={styles.cardTitle} numberOfLines={2}>{video.title}</Text>
         <Text style={styles.cardTitleBn} numberOfLines={1}>{video.titleBn}</Text>
@@ -111,10 +119,28 @@ function VideoCard({ video, isCompleted, onPress }: VideoCardProps) {
   );
 }
 
-/* ─── Inline YouTube Player Modal ───────────────────────────────────────── */
+/* ─── Video Player Modal ───────────────────────────────────────── */
 function VideoPlayer({ video, onClose }: { video: VideoLesson; onClose: () => void }) {
-  const embedUrl = `https://www.youtube.com/embed/${video.youtubeId}?autoplay=1&rel=0&modestbranding=1`;
+  const isYoutube = !video.videoUrl;
   const playerH = Math.round(SCREEN_W * 9 / 16);
+
+  const source = isYoutube
+    ? { uri: `https://www.youtube.com/embed/${video.youtubeId}?autoplay=1&rel=0&modestbranding=1` }
+    : { html: `
+        <!DOCTYPE html>
+        <html>
+          <head>
+            <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+            <style>
+              html, body { margin: 0; padding: 0; width: 100%; height: 100%; background-color: #000; display: flex; align-items: center; justify-content: center; overflow: hidden; }
+              video { width: 100%; height: 100%; object-fit: contain; }
+            </style>
+          </head>
+          <body>
+            <video src="${video.videoUrl}" controls autoplay playsinline></video>
+          </body>
+        </html>
+      ` };
 
   return (
     <View style={styles.playerOverlay}>
@@ -130,10 +156,10 @@ function VideoPlayer({ video, onClose }: { video: VideoLesson; onClose: () => vo
           </View>
         </View>
 
-        {/* YouTube embed */}
+        {/* Video Player */}
         <View style={[styles.playerWebView, { height: playerH }]}>
           <WebView
-            source={{ uri: embedUrl }}
+            source={source}
             style={{ flex: 1, backgroundColor: "#000" }}
             allowsFullscreenVideo
             mediaPlaybackRequiresUserAction={false}
@@ -168,12 +194,17 @@ export default function VideoScreen() {
   const user = useAppSelector(selectCurrentUser);
   const router = useRouter();
 
+  const [activeType, setActiveType] = useState<string>("YOUTUBE");
   const [activeFilter, setActiveFilter] = useState<string>("ALL");
   const [selectedVideo, setSelectedVideo] = useState<VideoLesson | null>(null);
   const [refreshing, setRefreshing] = useState(false);
 
   const path = activeFilter === "ALL" ? undefined : activeFilter;
-  const { data, isLoading, refetch } = useGetVideosQuery({ path, limit: 40 });
+  const { data, isLoading, refetch } = useGetVideosQuery({ 
+    path, 
+    type: activeType, 
+    limit: 40 
+  });
   const { data: progressData } = useGetMyVideoProgressQuery();
 
   const completedIds = new Set(
@@ -208,31 +239,66 @@ export default function VideoScreen() {
         </View>
       </LinearGradient>
 
-      {/* ── Filter Pills ─────────────────────────── */}
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={styles.filterRow}
-        style={styles.filterScroll}
-      >
-        {FILTER_KEYS.map((key) => {
-          const info = PATH_LABELS[key];
-          const active = activeFilter === key;
+      {/* ── Video Types Category Bar ────────────────── */}
+      <View style={styles.categoryRow}>
+        {[
+          { type: "YOUTUBE", label: "ইউটিউব লেসন", icon: "logo-youtube", color: "#EF4444" },
+          { type: "ILLUSTRATION", label: "অলঙ্করণ", icon: "color-palette-outline", color: "#10B981" },
+          { type: "PARENT", label: "প্যারেন্ট গিফট", icon: "heart-outline", color: "#F97316" },
+          { type: "PUBLIC", label: "পাবলিক ভিডিও", icon: "globe-outline", color: "#6366F1" },
+        ].map((cat) => {
+          const isActive = activeType === cat.type;
           return (
             <TouchableOpacity
-              key={key}
-              onPress={() => setActiveFilter(key)}
-              style={[styles.filterPill, active && { backgroundColor: info.color }]}
-              activeOpacity={0.8}
+              key={cat.type}
+              style={[
+                styles.categoryBtn,
+                isActive && { borderBottomColor: cat.color, borderBottomWidth: 3 }
+              ]}
+              onPress={() => {
+                setActiveType(cat.type);
+                setActiveFilter("ALL");
+              }}
             >
-              <Text style={styles.filterEmoji}>{info.emoji}</Text>
-              <Text style={[styles.filterText, active && { color: "#fff", fontWeight: "800" }]}>
-                {info.label}
+              <Ionicons name={cat.icon as any} size={18} color={isActive ? cat.color : "#64748B"} />
+              <Text style={[
+                styles.categoryBtnText,
+                isActive && { color: cat.color, fontWeight: "800" }
+              ]}>
+                {cat.label}
               </Text>
             </TouchableOpacity>
           );
         })}
-      </ScrollView>
+      </View>
+
+      {/* ── Filter Pills (Hide or adapt for private parents tab) ── */}
+      {activeType !== "PARENT" && (
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.filterRow}
+          style={styles.filterScroll}
+        >
+          {FILTER_KEYS.map((key) => {
+            const info = PATH_LABELS[key];
+            const active = activeFilter === key;
+            return (
+              <TouchableOpacity
+                key={key}
+                onPress={() => setActiveFilter(key)}
+                style={[styles.filterPill, active && { backgroundColor: info.color }]}
+                activeOpacity={0.8}
+              >
+                <Text style={styles.filterEmoji}>{info.emoji}</Text>
+                <Text style={[styles.filterText, active && { color: "#fff", fontWeight: "800" }]}>
+                  {info.label}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
+        </ScrollView>
+      )}
 
       {/* ── Content ──────────────────────────────── */}
       {isLoading ? (
@@ -244,7 +310,22 @@ export default function VideoScreen() {
         <View style={styles.centered}>
           <Text style={{ fontSize: 48 }}>📹</Text>
           <Text style={styles.emptyTitle}>কোনো ভিডিও নেই</Text>
-          <Text style={styles.emptySub}>এই বিভাগে এখনো ভিডিও যোগ করা হয়নি।</Text>
+          <Text style={styles.emptySub}>
+            {activeType === "PARENT" 
+              ? "বাবা-মায়ের কাছ থেকে কোনো ব্যক্তিগত শুভেচ্ছা ভিডিও পাওয়া যায়নি।" 
+              : "এই বিভাগে এখনো ভিডিও যোগ করা হয়নি।"}
+          </Text>
+
+          {/* Contribute Invitation CTA */}
+          {activeType === "PUBLIC" && (
+            <TouchableOpacity 
+              style={styles.contributeCta}
+              onPress={() => router.push("/(app)/settings/contribute" as any)}
+            >
+              <Ionicons name="add-circle-outline" size={16} color="#fff" />
+              <Text style={styles.contributeCtaText}>ভিডিও কন্ট্রিবিউট করুন</Text>
+            </TouchableOpacity>
+          )}
         </View>
       ) : (
         <FlatList
@@ -281,6 +362,11 @@ const styles = StyleSheet.create({
   xpBadge:     { backgroundColor: "rgba(255,255,255,0.2)", paddingHorizontal: 12, paddingVertical: 6, borderRadius: 20 },
   xpText:      { fontSize: 13, fontWeight: "800", color: "#fff" },
 
+  /* Category Bar */
+  categoryRow: { flexDirection: "row", backgroundColor: "#fff", borderBottomWidth: 1, borderColor: "#E2E8F0" },
+  categoryBtn: { flex: 1, flexDirection: "column", alignItems: "center", justifyContent: "center", paddingVertical: 10, gap: 4 },
+  categoryBtnText: { fontSize: 9, fontWeight: "700", color: "#64748B" },
+
   /* Filters */
   filterScroll: { flexGrow: 0 },
   filterRow:    { paddingHorizontal: 16, paddingVertical: 12, gap: 8, flexDirection: "row" },
@@ -295,7 +381,7 @@ const styles = StyleSheet.create({
   /* Thumbnail */
   thumbWrap:    { width: "100%", height: 200, backgroundColor: "#E0E7FF" },
   thumb:        { width: "100%", height: "100%" },
-  playOverlay:  { ...StyleSheet.absoluteFillObject, alignItems: "center", justifyContent: "center" },
+  playOverlay:  { ...StyleSheet.absoluteFill, alignItems: "center", justifyContent: "center" },
   playBtn:      { width: 52, height: 52, borderRadius: 26, backgroundColor: "rgba(99,102,241,0.9)", alignItems: "center", justifyContent: "center", shadowColor: "#000", shadowOpacity: 0.3, shadowRadius: 8, elevation: 6 },
   durationBadge:{ position: "absolute", bottom: 8, right: 8, backgroundColor: "rgba(0,0,0,0.75)", paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6 },
   durationText: { fontSize: 11, fontWeight: "700", color: "#fff" },
@@ -305,11 +391,13 @@ const styles = StyleSheet.create({
 
   /* Card info */
   cardInfo:    { padding: 14 },
-  cardMeta:    { flexDirection: "row", gap: 8, marginBottom: 8 },
+  cardMeta:    { flexDirection: "row", gap: 8, marginBottom: 8, alignItems: "center" },
   pathPill:    { flexDirection: "row", alignItems: "center", gap: 4, paddingHorizontal: 8, paddingVertical: 3, borderRadius: 10 },
   pathPillText:{ fontSize: 10, fontWeight: "700" },
   levelDot:    { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 10 },
   levelDotText:{ fontSize: 10, fontWeight: "800" },
+  typePill:    { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 10 },
+  typePillText:{ fontSize: 9, fontWeight: "700", color: "#475569" },
   cardTitle:   { fontSize: 15, fontWeight: "800", color: "#1F2937", lineHeight: 21, marginBottom: 2 },
   cardTitleBn: { fontSize: 12, fontWeight: "700", color: "#6366F1", marginBottom: 4 },
   cardDesc:    { fontSize: 12, color: "#6B7280", lineHeight: 17 },
@@ -334,5 +422,7 @@ const styles = StyleSheet.create({
   centered:    { flex: 1, alignItems: "center", justifyContent: "center", gap: 12 },
   loadingText: { fontSize: 14, color: "#7C3AED", fontWeight: "700" },
   emptyTitle:  { fontSize: 18, fontWeight: "800", color: "#374151" },
-  emptySub:    { fontSize: 13, color: "#9CA3AF", textAlign: "center", paddingHorizontal: 32 },
+  emptySub:    { fontSize: 13, color: "#9CA3AF", textAlign: "center", paddingHorizontal: 32, marginBottom: 12 },
+  contributeCta: { backgroundColor: "#6366F1", paddingHorizontal: 18, paddingVertical: 10, borderRadius: 14, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6 },
+  contributeCtaText: { color: "#fff", fontSize: 12, fontWeight: "800" },
 });

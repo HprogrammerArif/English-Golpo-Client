@@ -173,6 +173,8 @@ export default function ProfileScreen() {
             <MenuItem emoji="📥" icon="download-outline" label="Offline Downloads"  sublabel="ডাউনলোড ম্যানেজার" onPress={() => router.push("/(app)/stories/download-manager" as any)} iconBg="#F0FDF4" iconColor="#10B981" />
             <View style={styles.divider} />
             <MenuItem emoji="👨‍👩‍👧" icon="people-outline"  label="Parent Mode"        sublabel="অভিভাবক নিয়ন্ত্রণ" onPress={() => router.push("/(app)/parents/dashboard" as any)} iconBg="#FFF7ED" iconColor="#F97316" />
+            <View style={styles.divider} />
+            <MenuItem emoji="💰" icon="cash-outline"      label="Earn & Contribute"  sublabel="অডিও/ভিডিও কন্ট্রিবিউট করুন" onPress={() => router.push("/(app)/settings/contribute" as any)} iconBg="#F5F3FF" iconColor="#8B5CF6" />
           </View>
         </View>
 
