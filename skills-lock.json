@@ -31,6 +31,24 @@
       "skillPath": "plugins/expo/skills/expo-ui/SKILL.md",
       "computedHash": "96b8e9190119110df2ec0efcd4f67fe7c8f686c0a022b28d3efa2533b3167536"
     },
+    "find-skills": {
+      "source": "vercel-labs/skills",
+      "sourceType": "github",
+      "skillPath": "skills/find-skills/SKILL.md",
+      "computedHash": "b146008599c31057cef1c145774cea5d5afb30e8f43fa802e47a4b461419aaaf"
+    },
+    "frontend-design": {
+      "source": "anthropics/skills",
+      "sourceType": "github",
+      "skillPath": "skills/frontend-design/SKILL.md",
+      "computedHash": "4eabc66183767153e404b39d1b839b1c37f2d82d86f0a0d7e880a579d8d62336"
+    },
+    "sleek-design-mobile-apps": {
+      "source": "sleekdotdesign/agent-skills",
+      "sourceType": "github",
+      "skillPath": "skills/design-mobile-apps/SKILL.md",
+      "computedHash": "0331c9eed17d5c3c42ccb014eace7e3620fdc2d39d6a6c38e27540e5432c1068"
+    },
     "upgrading-expo": {
       "source": "expo/skills",
       "sourceType": "github",
