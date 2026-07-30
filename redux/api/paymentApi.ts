@@ -32,6 +32,14 @@ export const paymentApi = baseApi.injectEndpoints({
       }),
       invalidatesTags: ["User"],
     }),
+    verifyPersonalBkashPayment: builder.mutation<{ success: boolean; message: string }, { planId: string; transactionId: string }>({
+      query: (body) => ({
+        url: "/payment/bkash/verify-personal",
+        method: "POST",
+        body,
+      }),
+      invalidatesTags: ["User"],
+    }),
   }),
 });
 
@@ -39,4 +47,5 @@ export const {
   useCreateBkashPaymentMutation,
   useUnlockStoryMutation,
   useActivateBoosterMutation,
+  useVerifyPersonalBkashPaymentMutation,
 } = paymentApi;
