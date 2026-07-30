@@ -12,21 +12,21 @@ import { useGetStoriesQuery } from "@/redux/api/storyApi";
 import { useRouter } from "expo-router";
 
 const LEVELS = [
-  { id: 0, label: "সব",         en: "All" },
-  { id: 1, label: "Beginner",   en: "Beginner" },
+  { id: 0, label: "সব", en: "All" },
+  { id: 1, label: "Beginner", en: "Beginner" },
   { id: 2, label: "Elementary", en: "Elementary" },
-  { id: 3, label: "Intermediate",en: "Intermediate" },
-  { id: 4, label: "Advanced",   en: "Advanced" },
+  { id: 3, label: "Intermediate", en: "Intermediate" },
+  { id: 4, label: "Advanced", en: "Advanced" },
 ];
 
-const LEVEL_COLORS = ["#10B981","#3B82F6","#8B5CF6","#F59E0B","#EF4444"];
+const LEVEL_COLORS = ["#10B981", "#3B82F6", "#8B5CF6", "#F59E0B", "#EF4444"];
 
 const STORY_THUMB_COLORS = [
-  ["#D1FAE5","#059669"],
-  ["#DBEAFE","#2563EB"],
-  ["#EDE9FE","#7C3AED"],
-  ["#FEF3C7","#D97706"],
-  ["#FCE7F3","#DB2777"],
+  ["#D1FAE5", "#059669"],
+  ["#DBEAFE", "#2563EB"],
+  ["#EDE9FE", "#7C3AED"],
+  ["#FEF3C7", "#D97706"],
+  ["#FCE7F3", "#DB2777"],
 ];
 
 export default function ExploreScreen() {
@@ -53,8 +53,8 @@ export default function ExploreScreen() {
   const storyList = Array.isArray(stories)
     ? stories
     : (stories && typeof stories === "object" && "stories" in (stories as any) && Array.isArray((stories as any).stories))
-    ? (stories as any).stories
-    : [];
+      ? (stories as any).stories
+      : [];
 
   const filteredStories = storyList.filter((story: any) => {
     const matchesSearch =
@@ -178,7 +178,7 @@ export default function ExploreScreen() {
                   {item.illustrationUrl ? (
                     <Image
                       source={{ uri: item.illustrationUrl }}
-                      style={StyleSheet.absoluteFillObject}
+                      style={StyleSheet.absoluteFill}
                       resizeMode="cover"
                     />
                   ) : (
@@ -244,54 +244,54 @@ export default function ExploreScreen() {
 }
 
 const styles = StyleSheet.create({
-  safe:          { flex: 1, backgroundColor: "#F0FDF4" },
+  safe: { flex: 1, backgroundColor: "#F0FDF4" },
 
-  header:        { backgroundColor: "#fff", paddingHorizontal: 20, paddingTop: 16, paddingBottom: 6, borderBottomWidth: 1, borderBottomColor: "#E7F9EE" },
-  headerTop:     { flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 14 },
-  heading:       { fontSize: 22, fontWeight: "900", color: "#111827" },
-  headingSub:    { fontSize: 12, color: "#6B7280", fontWeight: "600", marginTop: 2 },
+  header: { backgroundColor: "#fff", paddingHorizontal: 20, paddingTop: 16, paddingBottom: 6, borderBottomWidth: 1, borderBottomColor: "#E7F9EE" },
+  headerTop: { flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 14 },
+  heading: { fontSize: 22, fontWeight: "900", color: "#111827" },
+  headingSub: { fontSize: 12, color: "#6B7280", fontWeight: "600", marginTop: 2 },
   headerActions: { flexDirection: "row", gap: 8 },
-  headerBtn:     { width: 36, height: 36, borderRadius: 18, backgroundColor: "#F3F4F6", alignItems: "center", justifyContent: "center" },
+  headerBtn: { width: 36, height: 36, borderRadius: 18, backgroundColor: "#F3F4F6", alignItems: "center", justifyContent: "center" },
 
-  searchRow:     { flexDirection: "row", alignItems: "center", backgroundColor: "#F3F4F6", borderRadius: 16, paddingHorizontal: 14, height: 46, gap: 8, marginBottom: 14 },
-  searchInput:   { flex: 1, fontSize: 14, color: "#111827", fontWeight: "500" },
+  searchRow: { flexDirection: "row", alignItems: "center", backgroundColor: "#F3F4F6", borderRadius: 16, paddingHorizontal: 14, height: 46, gap: 8, marginBottom: 14 },
+  searchInput: { flex: 1, fontSize: 14, color: "#111827", fontWeight: "500" },
 
-  chips:         { gap: 8, paddingBottom: 12 },
-  chip:          { paddingHorizontal: 16, height: 32, borderRadius: 16, backgroundColor: "#F3F4F6", justifyContent: "center" },
-  chipText:      { fontSize: 12, fontWeight: "700", color: "#6B7280" },
-  chipTextActive:{ color: "#fff" },
+  chips: { gap: 8, paddingBottom: 12 },
+  chip: { paddingHorizontal: 16, height: 32, borderRadius: 16, backgroundColor: "#F3F4F6", justifyContent: "center" },
+  chipText: { fontSize: 12, fontWeight: "700", color: "#6B7280" },
+  chipTextActive: { color: "#fff" },
 
-  list:          { padding: 16, paddingBottom: 48 },
+  list: { padding: 16, paddingBottom: 48 },
 
-  storyCard:     { flexDirection: "row", alignItems: "center", backgroundColor: "#fff", borderRadius: 20, marginBottom: 12, overflow: "hidden", shadowColor: "#000", shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 6, elevation: 2 },
-  thumb:         { width: 88, height: 88, alignItems: "center", justifyContent: "center", overflow: "hidden" },
-  lockOverlay:   { ...StyleSheet.absoluteFillObject, backgroundColor: "rgba(0,0,0,0.45)", alignItems: "center", justifyContent: "center" },
+  storyCard: { flexDirection: "row", alignItems: "center", backgroundColor: "#fff", borderRadius: 20, marginBottom: 12, overflow: "hidden", shadowColor: "#000", shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 6, elevation: 2 },
+  thumb: { width: 88, height: 88, alignItems: "center", justifyContent: "center", overflow: "hidden" },
+  lockOverlay: { ...StyleSheet.absoluteFillObject, backgroundColor: "rgba(0,0,0,0.45)", alignItems: "center", justifyContent: "center" },
 
-  storyInfo:     { flex: 1, paddingVertical: 12, paddingHorizontal: 12 },
+  storyInfo: { flex: 1, paddingVertical: 12, paddingHorizontal: 12 },
   storyBadgeRow: { flexDirection: "row", flexWrap: "wrap", gap: 4, marginBottom: 4 },
-  levelBadge:    { paddingHorizontal: 7, paddingVertical: 2, borderRadius: 8 },
-  levelBadgeText:{ fontSize: 9, fontWeight: "800" },
-  premiumTag:    { backgroundColor: "#FEF3C7", paddingHorizontal: 6, paddingVertical: 2, borderRadius: 8 },
-  premiumTagText:{ fontSize: 9, fontWeight: "800", color: "#92400E" },
-  nctbTag:       { backgroundColor: "#EDE9FE", paddingHorizontal: 6, paddingVertical: 2, borderRadius: 8 },
-  nctbTagText:   { fontSize: 9, fontWeight: "800", color: "#5B21B6" },
+  levelBadge: { paddingHorizontal: 7, paddingVertical: 2, borderRadius: 8 },
+  levelBadgeText: { fontSize: 9, fontWeight: "800" },
+  premiumTag: { backgroundColor: "#FEF3C7", paddingHorizontal: 6, paddingVertical: 2, borderRadius: 8 },
+  premiumTagText: { fontSize: 9, fontWeight: "800", color: "#92400E" },
+  nctbTag: { backgroundColor: "#EDE9FE", paddingHorizontal: 6, paddingVertical: 2, borderRadius: 8 },
+  nctbTagText: { fontSize: 9, fontWeight: "800", color: "#5B21B6" },
 
-  storyTitle:    { fontSize: 14, fontWeight: "800", color: "#111827" },
-  storyTitleBn:  { fontSize: 11, fontWeight: "600", color: "#6B7280", marginTop: 1 },
-  storyMeta:     { flexDirection: "row", gap: 10, marginTop: 6 },
-  metaItem:      { flexDirection: "row", alignItems: "center", gap: 3 },
-  metaText:      { fontSize: 10, color: "#9CA3AF", fontWeight: "600" },
+  storyTitle: { fontSize: 14, fontWeight: "800", color: "#111827" },
+  storyTitleBn: { fontSize: 11, fontWeight: "600", color: "#6B7280", marginTop: 1 },
+  storyMeta: { flexDirection: "row", gap: 10, marginTop: 6 },
+  metaItem: { flexDirection: "row", alignItems: "center", gap: 3 },
+  metaText: { fontSize: 10, color: "#9CA3AF", fontWeight: "600" },
 
-  arrowWrap:     { paddingRight: 14 },
+  arrowWrap: { paddingRight: 14 },
 
-  center:        { flex: 1, alignItems: "center", justifyContent: "center", padding: 32 },
-  loadingText:   { marginTop: 12, color: "#6B7280", fontWeight: "600" },
-  errorText:     { fontSize: 16, fontWeight: "800", color: "#1F2937", textAlign: "center" },
-  errorSub:      { fontSize: 12, color: "#9CA3AF", marginTop: 4, marginBottom: 16, textAlign: "center" },
-  retryBtn:      { backgroundColor: "#10B981", paddingHorizontal: 24, paddingVertical: 10, borderRadius: 20 },
-  retryText:     { color: "#fff", fontWeight: "800", fontSize: 14 },
+  center: { flex: 1, alignItems: "center", justifyContent: "center", padding: 32 },
+  loadingText: { marginTop: 12, color: "#6B7280", fontWeight: "600" },
+  errorText: { fontSize: 16, fontWeight: "800", color: "#1F2937", textAlign: "center" },
+  errorSub: { fontSize: 12, color: "#9CA3AF", marginTop: 4, marginBottom: 16, textAlign: "center" },
+  retryBtn: { backgroundColor: "#10B981", paddingHorizontal: 24, paddingVertical: 10, borderRadius: 20 },
+  retryText: { color: "#fff", fontWeight: "800", fontSize: 14 },
 
-  empty:         { alignItems: "center", paddingTop: 48 },
-  emptyTitle:    { fontSize: 16, fontWeight: "800", color: "#374151" },
-  emptySub:      { fontSize: 12, color: "#9CA3AF", fontWeight: "600", marginTop: 4 },
+  empty: { alignItems: "center", paddingTop: 48 },
+  emptyTitle: { fontSize: 16, fontWeight: "800", color: "#374151" },
+  emptySub: { fontSize: 12, color: "#9CA3AF", fontWeight: "600", marginTop: 4 },
 });

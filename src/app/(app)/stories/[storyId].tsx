@@ -5,10 +5,19 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import { useGetStoryByIdQuery } from "@/redux/api/storyApi";
 import { StoryReader } from "@/components/story/StoryReader";
 import { Ionicons } from "@expo/vector-icons";
+import { useAppDispatch } from "@/redux/hooks";
+import { setLastReadStoryId } from "@/redux/features/progress/progressSlice";
 
 export default function StoryDetailScreen() {
   const { storyId } = useLocalSearchParams<{ storyId: string }>();
   const router = useRouter();
+  const dispatch = useAppDispatch();
+
+  React.useEffect(() => {
+    if (storyId) {
+      dispatch(setLastReadStoryId(storyId));
+    }
+  }, [storyId, dispatch]);
 
   const { data: story, isLoading, error, refetch } = useGetStoryByIdQuery(storyId);
 

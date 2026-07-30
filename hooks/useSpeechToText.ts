@@ -1,73 +1,89 @@
 // hooks/useSpeechToText.ts
 import { useState, useEffect } from 'react';
-
-let AudioModule: typeof import('expo-av').Audio | null = null;
-try {
-  AudioModule = require('expo-av').Audio;
-} catch {
-  console.warn('[useSpeechToText] expo-av native module not available.');
-}
+import { 
+  useAudioRecorder, 
+  RecordingPresets, 
+  requestRecordingPermissionsAsync, 
+  getRecordingPermissionsAsync,
+  setAudioModeAsync
+} from 'expo-audio';
 
 export const useSpeechToText = () => {
-  const [recording, setRecording] = useState<any>(null);
+  const [permissionStatus, setPermissionStatus] = useState<string | null>(null);
   const [isRecording, setIsRecording] = useState(false);
-  const [permissionResponse, setPermissionResponse] = useState<any>(null);
+
+  // Initialize the recorder hook
+  const recorder = useAudioRecorder(RecordingPresets.HIGH_QUALITY);
 
   useEffect(() => {
-    if (!AudioModule) return;
-
-    const getPermission = async () => {
+    const checkPermission = async () => {
       try {
-        const response = await AudioModule.getPermissionsAsync();
-        setPermissionResponse(response);
+        const { status } = await getRecordingPermissionsAsync();
+        setPermissionStatus(status);
+        
+        // Configure default audio mode for playback
+        await setAudioModeAsync({
+          playsInSilentMode: true,
+          allowsRecording: false,
+        });
       } catch (err) {
-        console.error('[useSpeechToText] Error getting audio permissions:', err);
+        console.error('[useSpeechToText] Error checking permissions / setting audio mode:', err);
       }
     };
-    getPermission();
+    checkPermission();
   }, []);
 
   const startRecording = async (): Promise<boolean> => {
-    if (!AudioModule) {
-      console.warn('Audio module not loaded.');
-      return false;
-    }
-
     try {
-      if (permissionResponse?.status !== 'granted') {
-        const req = await AudioModule.requestPermissionsAsync();
-        setPermissionResponse(req);
-        if (req.status !== 'granted') return false;
+      let status = permissionStatus;
+      if (status !== 'granted') {
+        const req = await requestRecordingPermissionsAsync();
+        status = req.status;
+        setPermissionStatus(status);
+        if (status !== 'granted') return false;
       }
 
-      await AudioModule.setAudioModeAsync({
-        allowsRecordingIOS: true,
-        playsInSilentModeIOS: true,
+      // Configure audio mode to allow recording
+      await setAudioModeAsync({
+        playsInSilentMode: true,
+        allowsRecording: true,
       });
 
-      const { recording: newRecording } = await AudioModule.Recording.createAsync(
-        AudioModule.RecordingOptionsPresets.HIGH_QUALITY
-      );
-      setRecording(newRecording);
+      // Prepare and start recording
+      try {
+        await recorder.prepareToRecordAsync();
+      } catch (prepErr: any) {
+        if (prepErr?.message?.includes("already been prepared")) {
+          console.log('[useSpeechToText] Recorder already prepared, continuing.');
+        } else {
+          throw prepErr;
+        }
+      }
+      recorder.record();
       setIsRecording(true);
       return true;
     } catch (err) {
       console.error('[useSpeechToText] Failed to start recording:', err);
+      setIsRecording(false);
       return false;
     }
   };
 
   const stopRecording = async (): Promise<string | null> => {
-    if (!recording) return null;
-    setIsRecording(false);
     try {
-      await recording.stopAndUnloadAsync();
-      const uri = recording.getURI();
-      setRecording(null);
-      return uri;
+      await recorder.stop();
+      setIsRecording(false);
+      
+      // Reset audio mode to default (not recording, just playback)
+      await setAudioModeAsync({
+        playsInSilentMode: true,
+        allowsRecording: false,
+      });
+
+      return recorder.uri || null;
     } catch (err) {
       console.error('[useSpeechToText] Failed to stop recording:', err);
-      setRecording(null);
+      setIsRecording(false);
       return null;
     }
   };
@@ -76,6 +92,6 @@ export const useSpeechToText = () => {
     isRecording,
     startRecording,
     stopRecording,
-    hasPermission: permissionResponse?.status === 'granted',
+    hasPermission: permissionStatus === 'granted',
   };
 };

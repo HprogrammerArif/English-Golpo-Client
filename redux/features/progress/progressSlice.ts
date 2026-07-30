@@ -15,6 +15,7 @@ export interface ProgressState {
   unlockedLevels: string[];
   bookmarks: LocalBookmark[];
   storyProgress: Record<string, { currentPageIndex: number; isCompleted: boolean }>;
+  lastReadStoryId?: string | null;
 }
 
 const initialState: ProgressState = {
@@ -22,6 +23,7 @@ const initialState: ProgressState = {
   unlockedLevels: ["1"], // Default to level 1 unlocked
   bookmarks: [],
   storyProgress: {},
+  lastReadStoryId: null,
 };
 
 const progressSlice = createSlice({
@@ -64,6 +66,9 @@ const progressSlice = createSlice({
         state.unlockedLevels.push(action.payload);
       }
     },
+    setLastReadStoryId: (state, action: PayloadAction<string | null>) => {
+      state.lastReadStoryId = action.payload;
+    },
   },
 });
 
@@ -74,6 +79,7 @@ export const {
   markStoryAsCompleted,
   updateStoryPageProgress,
   unlockLevel,
+  setLastReadStoryId,
 } = progressSlice.actions;
 
 export default progressSlice.reducer;
@@ -83,4 +89,5 @@ export const selectCompletedStories = (state: RootState) => state.progress.compl
 export const selectUnlockedLevels = (state: RootState) => state.progress.unlockedLevels;
 export const selectStoryProgress = (state: RootState) => state.progress.storyProgress;
 export const selectSingleStoryProgress = (storyId: string) => (state: RootState) => state.progress.storyProgress[storyId];
+export const selectLastReadStoryId = (state: RootState) => state.progress.lastReadStoryId;
 

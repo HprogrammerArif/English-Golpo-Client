@@ -53,7 +53,12 @@ function VideoCard({ video, isCompleted, onPress }: VideoCardProps) {
 
   // If it's not a youtube video, try to fallback to default thumb
   const defaultThumb = "https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?w=600";
-  const thumbUrl = video.thumbnailUrl || (video.youtubeId ? `https://img.youtube.com/vi/${video.youtubeId}/hqdefault.jpg` : defaultThumb);
+  // Prefer stored thumbnailUrl, then YouTube's maxresdefault, then hqdefault, then unsplash fallback
+  const [imgSrc, setImgSrc] = useState(
+    video.thumbnailUrl ||
+    (video.youtubeId ? `https://img.youtube.com/vi/${video.youtubeId}/maxresdefault.jpg` : defaultThumb)
+  );
+  const thumbUrl = imgSrc;
 
   return (
     <TouchableOpacity style={styles.card} onPress={onPress} activeOpacity={0.88}>
@@ -63,6 +68,16 @@ function VideoCard({ video, isCompleted, onPress }: VideoCardProps) {
           source={{ uri: thumbUrl }}
           style={styles.thumb}
           resizeMode="cover"
+          onError={() => {
+            // Fallback chain: maxresdefault → hqdefault → unsplash
+            if (video.youtubeId && thumbUrl.includes('maxresdefault')) {
+              setImgSrc(`https://img.youtube.com/vi/${video.youtubeId}/hqdefault.jpg`);
+            } else if (video.youtubeId && thumbUrl.includes('hqdefault')) {
+              setImgSrc(`https://img.youtube.com/vi/${video.youtubeId}/mqdefault.jpg`);
+            } else {
+              setImgSrc(defaultThumb);
+            }
+          }}
         />
         {/* Play overlay */}
         <View style={styles.playOverlay}>
@@ -120,27 +135,76 @@ function VideoCard({ video, isCompleted, onPress }: VideoCardProps) {
 }
 
 /* ─── Video Player Modal ───────────────────────────────────────── */
+/**
+ * YouTube Error 153 Fix:
+ * Android WebViews block direct youtube.com/embed URLs.
+ * Solution: Serve a self-contained HTML page with the YouTube IFrame API.
+ * This is the recommended way to embed YouTube in React Native WebView.
+ */
+function buildYouTubeHtml(youtubeId: string): string {
+  return `<!DOCTYPE html>
+<html>
+  <head>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <style>
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      html, body { width: 100%; height: 100%; background: #000; overflow: hidden; }
+      #player { width: 100%; height: 100%; }
+      iframe { width: 100%; height: 100%; border: none; }
+    </style>
+  </head>
+  <body>
+    <div id="player"></div>
+    <script>
+      var tag = document.createElement('script');
+      tag.src = 'https://www.youtube.com/iframe_api';
+      var firstScriptTag = document.getElementsByTagName('script')[0];
+      firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
+
+      function onYouTubeIframeAPIReady() {
+        new YT.Player('player', {
+          videoId: '${youtubeId}',
+          playerVars: {
+            autoplay: 1,
+            playsinline: 1,
+            rel: 0,
+            modestbranding: 1,
+            controls: 1,
+          },
+          events: {
+            onReady: function(e) { e.target.playVideo(); }
+          }
+        });
+      }
+    <\/script>
+  </body>
+</html>`;
+}
+
+function buildMp4Html(videoUrl: string): string {
+  return `<!DOCTYPE html>
+<html>
+  <head>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <style>
+      html, body { margin: 0; padding: 0; width: 100%; height: 100%; background: #000; display: flex; align-items: center; justify-content: center; overflow: hidden; }
+      video { width: 100%; height: 100%; object-fit: contain; }
+    </style>
+  </head>
+  <body>
+    <video src="${videoUrl}" controls autoplay playsinline></video>
+  </body>
+</html>`;
+}
+
 function VideoPlayer({ video, onClose }: { video: VideoLesson; onClose: () => void }) {
-  const isYoutube = !video.videoUrl;
+  const isYoutube = !!video.youtubeId && !video.videoUrl;
   const playerH = Math.round(SCREEN_W * 9 / 16);
 
+  // Use html source (not uri) so YouTube IFrame API works inside WebView
   const source = isYoutube
-    ? { uri: `https://www.youtube.com/embed/${video.youtubeId}?autoplay=1&rel=0&modestbranding=1` }
-    : { html: `
-        <!DOCTYPE html>
-        <html>
-          <head>
-            <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-            <style>
-              html, body { margin: 0; padding: 0; width: 100%; height: 100%; background-color: #000; display: flex; align-items: center; justify-content: center; overflow: hidden; }
-              video { width: 100%; height: 100%; object-fit: contain; }
-            </style>
-          </head>
-          <body>
-            <video src="${video.videoUrl}" controls autoplay playsinline></video>
-          </body>
-        </html>
-      ` };
+    ? { html: buildYouTubeHtml(video.youtubeId!) }
+    : { html: buildMp4Html(video.videoUrl!) };
 
   return (
     <View style={styles.playerOverlay}>
@@ -156,14 +220,18 @@ function VideoPlayer({ video, onClose }: { video: VideoLesson; onClose: () => vo
           </View>
         </View>
 
-        {/* Video Player */}
+        {/* Video Player — uses self-hosted HTML to avoid YouTube Error 153 */}
         <View style={[styles.playerWebView, { height: playerH }]}>
           <WebView
             source={source}
             style={{ flex: 1, backgroundColor: "#000" }}
             allowsFullscreenVideo
+            allowsInlineMediaPlayback
             mediaPlaybackRequiresUserAction={false}
             javaScriptEnabled
+            domStorageEnabled
+            originWhitelist={["*"]}
+            mixedContentMode="always"
           />
         </View>
 
@@ -369,8 +437,8 @@ const styles = StyleSheet.create({
 
   /* Filters */
   filterScroll: { flexGrow: 0 },
-  filterRow:    { paddingHorizontal: 16, paddingVertical: 12, gap: 8, flexDirection: "row" },
-  filterPill:   { flexDirection: "row", alignItems: "center", gap: 4, paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20, backgroundColor: "#EDE9FE", borderWidth: 1.5, borderColor: "transparent" },
+  filterRow:    { paddingHorizontal: 16, paddingVertical: 12, marginTop:2, gap: 8, flexDirection: "row", alignItems: "center" },
+  filterPill:   { flexDirection: "row", alignItems: "center", gap: 4, paddingHorizontal: 14, paddingVertical: 6, borderRadius: 20, backgroundColor: "#EDE9FE", borderWidth: 1.5, borderColor: "transparent", minWidth: 80, minHeight:45 },
   filterEmoji:  { fontSize: 14 },
   filterText:   { fontSize: 12, fontWeight: "700", color: "#7C3AED" },
 

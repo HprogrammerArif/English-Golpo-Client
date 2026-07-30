@@ -17,6 +17,7 @@ import { selectDailyGoal } from "@/redux/features/gamification/gameSlice";
 import { useGetStreakQuery } from "@/redux/api/gamificationApi";
 import { useGetStoriesQuery } from "@/redux/api/storyApi";
 import { useRouter } from "expo-router";
+import { selectLastReadStoryId } from "@/redux/features/progress/progressSlice";
 
 const PATH_CONFIG: Record<string, { label: string; emoji: string; color: string[]; desc: string }> = {
   KIDS:     { label: "Kids English",       emoji: "🌟", color: ["#10B981","#059669"], desc: "বাচ্চাদের ইংরেজি শিক্ষা" },
@@ -28,16 +29,79 @@ const PATH_CONFIG: Record<string, { label: string; emoji: string; color: string[
 };
 
 const QUICK_ACTIONS = [
-  { id: "shop",    emoji: "💎", label: "Gems Shop",     sublabel: "পাথর কিনুন",    bg: "#EFF6FF", route: "/(app)/shop" as const },
-  { id: "refer",   emoji: "🎁", label: "Invite & Earn", sublabel: "বন্ধুকে ডাকুন",  bg: "#FDF4FF", route: "/(app)/growth/refer" as const },
-  { id: "parents", emoji: "👨‍👩‍👧", label: "Parent Mode",  sublabel: "অভিভাবক মোড", bg: "#FFF7ED", route: "/(app)/parents/dashboard" as const },
-  { id: "premium", emoji: "👑", label: "Go Premium",    sublabel: "আনলিমিটেড",    bg: "#F0FDF4", route: "/(app)/subscription/paywall" as const },
+  { 
+    id: "shop", 
+    emoji: "💎", 
+    label: "Gems Shop", 
+    sublabel: "পাথর কিনুন", 
+    bg: "#EFF6FF", 
+    borderColor: "#DBEAFE",
+    iconBg: "#FFFFFF",
+    color: "#1D4ED8",
+    route: "/(app)/shop" as const 
+  },
+  { 
+    id: "refer", 
+    emoji: "🎁", 
+    label: "Invite & Earn", 
+    sublabel: "বন্ধুকে ডাকুন", 
+    bg: "#FDF4FF", 
+    borderColor: "#F5D0FE",
+    iconBg: "#FFFFFF",
+    color: "#C026D3",
+    route: "/(app)/growth/refer" as const 
+  },
+  { 
+    id: "parents", 
+    emoji: "👨‍👩‍👧", 
+    label: "Parent Mode", 
+    sublabel: "অভিভাবক মোড", 
+    bg: "#FFF7ED", 
+    borderColor: "#FFEDD5",
+    iconBg: "#FFFFFF",
+    color: "#EA580C",
+    route: "/(app)/parents/dashboard" as const 
+  },
+  { 
+    id: "premium", 
+    emoji: "👑", 
+    label: "Go Premium", 
+    sublabel: "আনলিমিটেড", 
+    bg: "#F0FDF4", 
+    borderColor: "#DCFCE7",
+    iconBg: "#FFFFFF",
+    color: "#16A34A",
+    route: "/(app)/subscription/paywall" as const 
+  },
+  { 
+    id: "contribute", 
+    emoji: "🎙️", 
+    label: "Contribute", 
+    sublabel: "অবদান ও আয়", 
+    bg: "#F5F3FF", 
+    borderColor: "#EDE9FE",
+    iconBg: "#FFFFFF",
+    color: "#7C3AED",
+    route: "/(app)/settings/contribute" as const 
+  },
+  { 
+    id: "downloads", 
+    emoji: "📥", 
+    label: "Downloads", 
+    sublabel: "ডাউনলোড", 
+    bg: "#ECFDF5", 
+    borderColor: "#D1FAE5",
+    iconBg: "#FFFFFF",
+    color: "#059669",
+    route: "/(app)/stories/download-manager" as const 
+  },
 ];
 
 export default function HomeScreen() {
   const router = useRouter();
   const user = useAppSelector(selectCurrentUser);
   const dailyGoal = useAppSelector(selectDailyGoal);
+  const lastReadStoryId = useAppSelector(selectLastReadStoryId);
   const { data: streakData } = useGetStreakQuery();
   const { data: storiesData } = useGetStoriesQuery({ path: user?.learningPath || "KIDS" });
 
@@ -52,7 +116,9 @@ export default function HomeScreen() {
 
   const storyList  = Array.isArray(storiesData) ? storiesData
     : (storiesData as any)?.stories || [];
-  const recentStory = storyList[0];
+  const recentStory = lastReadStoryId
+    ? storyList.find((s: any) => s.id === lastReadStoryId) || storyList[0]
+    : storyList[0];
 
   const dailyPct = Math.min(100, Math.round((xpTotal / dailyGoal) * 100));
 
@@ -224,13 +290,26 @@ export default function HomeScreen() {
             {QUICK_ACTIONS.map((action) => (
               <TouchableOpacity
                 key={action.id}
-                style={[styles.actionCard, { backgroundColor: action.bg }]}
+                style={[
+                  styles.actionCard,
+                  {
+                    backgroundColor: action.bg,
+                    borderColor: action.borderColor,
+                  }
+                ]}
                 onPress={() => router.push(action.route as any)}
                 activeOpacity={0.8}
               >
-                <Text style={styles.actionEmoji}>{action.emoji}</Text>
-                <Text style={styles.actionLabel}>{action.label}</Text>
-                <Text style={styles.actionSub}>{action.sublabel}</Text>
+                <View style={[styles.actionIconContainer, { backgroundColor: action.iconBg }]}>
+                  <Text style={styles.actionEmoji}>{action.emoji}</Text>
+                </View>
+                <View style={styles.actionTextContainer}>
+                  <Text style={styles.actionLabel}>{action.label}</Text>
+                  <Text style={[styles.actionSub, { color: action.color }]}>{action.sublabel}</Text>
+                </View>
+                <View style={styles.cardArrow}>
+                  <Ionicons name="chevron-forward" size={10} color={action.color} style={{ opacity: 0.6 }} />
+                </View>
               </TouchableOpacity>
             ))}
           </View>
@@ -330,11 +409,39 @@ const styles = StyleSheet.create({
   recentTime:      { fontSize: 11, color: "#9CA3AF", fontWeight: "600" },
 
   /* Quick Actions */
-  actionsGrid:     { flexDirection: "row", flexWrap: "wrap", gap: 12 },
-  actionCard:      { width: "47%", borderRadius: 20, padding: 16, alignItems: "center" },
-  actionEmoji:     { fontSize: 28, marginBottom: 6 },
-  actionLabel:     { fontSize: 13, fontWeight: "800", color: "#1F2937", textAlign: "center" },
-  actionSub:       { fontSize: 10, color: "#6B7280", fontWeight: "600", marginTop: 2, textAlign: "center" },
+  actionsGrid:     { flexDirection: "row", flexWrap: "wrap", gap: 10, justifyContent: "space-between" },
+  actionCard:      { 
+    width: "48%", 
+    borderRadius: 20, 
+    padding: 12, 
+    flexDirection: "row", 
+    alignItems: "center", 
+    borderWidth: 1,
+    position: "relative",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.03,
+    shadowRadius: 3,
+    elevation: 1
+  },
+  actionIconContainer: { 
+    width: 36, 
+    height: 36, 
+    borderRadius: 12, 
+    alignItems: "center", 
+    justifyContent: "center",
+    marginRight: 8,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 1
+  },
+  actionEmoji:     { fontSize: 18 },
+  actionTextContainer: { flex: 1, justifyContent: "center" },
+  actionLabel:     { fontSize: 12, fontWeight: "800", color: "#1F2937" },
+  actionSub:       { fontSize: 9, fontWeight: "700", marginTop: 1 },
+  cardArrow:       { position: "absolute", top: 12, right: 8 },
 
   /* League banner */
   leagueBanner:    { marginHorizontal: 20, marginBottom: 8, borderRadius: 20, overflow: "hidden" },

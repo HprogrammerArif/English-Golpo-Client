@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, ActivityIndicator, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSpeechToText } from '@/hooks/useSpeechToText';
-import * as FileSystem from 'expo-file-system';
+import * as FileSystem from 'expo-file-system/legacy';
 import { useAppSelector } from '@/redux/hooks';
 import { selectCurrentToken } from '@/redux/features/auth/authSlice';
 import { baseUrl } from '@/redux/api/baseApi';
@@ -70,7 +70,7 @@ export const PronunciationCheck: React.FC<PronunciationCheckProps> = ({
         throw new Error(`Upload failed with status ${response.status}`);
       }
     } catch (e) {
-      console.error('Error uploading speech assessment', e);
+      console.warn('Error uploading speech assessment (using fallback):', e);
       // Fallback evaluation for simulator / offline testing
       const mockScore = Math.floor(70 + Math.random() * 25);
       setScore(mockScore);

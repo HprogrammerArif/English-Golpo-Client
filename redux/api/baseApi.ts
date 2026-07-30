@@ -214,7 +214,8 @@ export const baseApi = createApi({
     "NotificationPreferences",
     "NotificationHistory",
     "Videos",
-    "VideoProgress"
+    "VideoProgress",
+    "Contributions"
   ] as const,
   endpoints: (builder) => ({}),
 });
