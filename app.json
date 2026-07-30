@@ -46,7 +46,6 @@
           "defaultChannel": "default"
         }
       ],
-      "@sentry/react-native",
       "expo-web-browser",
       "expo-font",
       "expo-image",
